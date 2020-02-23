@@ -22,7 +22,7 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
         # pylint: disable=no-value-for-parameter
         vol.Required(CONF_URL): vol.Url(),
-        vol.Required(CONF_EMAIL): vol.Email(),
+        vol.Required(CONF_EMAIL): cv.str,
         vol.Required(CONF_PASSWORD): cv.string,
         vol.Required(CONF_ENCRYPTION_PASSWORD): cv.string,
 
