@@ -1,0 +1,5 @@
+{
+  "name": "EteSync calendar",
+  "domains": ["etesync_calendar"],
+  "render_readme": true
+}

@@ -16,7 +16,7 @@ from homeassistant.helpers.entity import generate_entity_id
 
 CONF_ENCRYPTION_PASSWORD = "encryption_password"
 
-DOMAIN = "etesync"
+DOMAIN = "etesync_calendar"
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
