@@ -1,0 +1,8 @@
+{
+  "domain": "etesync",
+  "name": "Ete Sync calendar",
+  "documentation": "",
+  "dependencies": [],
+  "codeowners": [],
+  "requirements": ["etesync==0.9.3"]
+}
