@@ -103,7 +103,7 @@ def _write_to_cache(folder, url, username, password, encryption_password, cipher
     file = os.path.join(folder, CACHE_FILE)
     try:
         with open(file, 'w') as stream:
-            stream.writelines([url, username, password, encryption_password, cipher_key])
+            stream.write('\n'.join([url, username, password, encryption_password, cipher_key]))
     except IOError:
         _LOGGER.warning("Could not write cache file")
 
