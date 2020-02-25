@@ -118,6 +118,7 @@ def _write_to_cache(folder, url, username, password, encryption_password, cipher
 def _credentials_not_changed(old, new):
     for i in range(3):
         if not old[i] == new[i]:
+            _LOGGER.warning("credentials have changed!")
             return False
     return True
 
