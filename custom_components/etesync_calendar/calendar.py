@@ -77,7 +77,8 @@ def setup_platform(hass, config, add_entities, disc_info=None):
     for item in items:
         # Filter task list / address book's
         if item.info['type'] == CALENDAR_ITEM_TYPE:
-            entity_id = generate_entity_id(ENTITY_ID_FORMAT, item.info['displayName'].lower(), hass=hass)
+            name = f"{username}-{item.info['displayName']}"
+            entity_id = generate_entity_id(ENTITY_ID_FORMAT, name, hass=hass)
             device = EteSyncCalendarEventDevice(item, entity_id)
             devices.append(device)
 
@@ -131,6 +132,11 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
         self._calendar = calendar
         self._name = calendar.info['displayName']
         self._entity_id = entity_id
+
+    @property
+    def name(self):
+        """Return the name of the entity."""
+        return self._name
 
     @property
     def event(self):
