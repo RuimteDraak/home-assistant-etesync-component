@@ -59,14 +59,14 @@ def setup_platform(hass, config, add_entities, disc_info=None):
         auth_token = Authenticator(url).get_auth_token(username, password)
 
         ete_sync = EteSync(username, auth_token, remote=url)
-        _LOGGER.info("Deriving key")
+        _LOGGER.warning("Deriving key, this could take some time")
         # Very slow operation, should probably be securely cached
         cipher_key = ete_sync.derive_key(encryption_password)
         _write_to_cache(cache_folder, url, username, password, encryption_password, cipher_key)
 
-    _LOGGER.info("Syncing")
+    _LOGGER.warning("Syncing")
     ete_sync.sync()
-    _LOGGER.info("Syncing done")
+    _LOGGER.warning("Syncing done")
 
     items = ete_sync.list()
 
