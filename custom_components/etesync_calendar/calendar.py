@@ -22,7 +22,7 @@ from homeassistant.helpers.entity import generate_entity_id
 DOMAIN = 'etesync_calendar'
 
 CONF_ENCRYPTION_PASSWORD = 'encryption_password'
-CACHE_FOLDER = 'custom_components/etesync_calender/cache'
+CACHE_FOLDER = 'custom_components/etesync_calendar/cache'
 CACHE_FILE_TEXT = 'secret_check'
 CACHE_FILE_BIN = 'secret_key'
 

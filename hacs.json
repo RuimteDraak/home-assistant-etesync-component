@@ -1,5 +1,6 @@
 {
   "name": "EteSync calendar",
   "domains": ["etesync_calendar"],
-  "render_readme": true
+  "render_readme": true,
+  "persistent_directory": "cache"
 }
