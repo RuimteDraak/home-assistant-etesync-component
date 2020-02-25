@@ -88,10 +88,10 @@ def _read_from_cache(folder):
     if os.path.exists(file_t) and os.path.isfile(file_t):
         try:
             with open(file_t, 'tr') as stream:
-                url = stream.readline()
-                username = stream.readline()
-                password = stream.readline()
-                auth_token = stream.readline()
+                url = stream.readline().strip()
+                username = stream.readline().strip()
+                password = stream.readline().strip()
+                auth_token = stream.readline().strip()
             with open(file_w, 'br') as stream:
                 cipher_key = stream.read()
             return url, username, password, auth_token, cipher_key
