@@ -1,5 +1,6 @@
 import voluptuous as vol
 import logging
+import os
 from etesync import Authenticator, EteSync
 
 from homeassistant.components.calendar import (
@@ -18,12 +19,12 @@ from homeassistant.const import (
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import generate_entity_id
 
+DOMAIN = 'etesync_calendar'
 
-CONF_ENCRYPTION_PASSWORD = "encryption_password"
-
-DOMAIN = "etesync_calendar"
-
-CALENDAR_ITEM_TYPE = "CALENDAR"
+CONF_ENCRYPTION_PASSWORD = 'encryption_password'
+CACHE_FOLDER = 'custom_components/etesync_calender/cache'
+CACHE_FILE = 'secret'
+CALENDAR_ITEM_TYPE = 'CALENDAR'
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
@@ -45,18 +46,27 @@ def setup_platform(hass, config, add_entities, disc_info=None):
     password = config[CONF_PASSWORD]
     encryption_password = config[CONF_ENCRYPTION_PASSWORD]
 
-    # Token should be saved instead of requested every time
-    auth_token = Authenticator(url).get_auth_token(username, password)
+    cache_folder = hass.config.path(CACHE_FOLDER)
+    credentials = _read_from_cache(cache_folder)
 
-    etesync = EteSync(username, auth_token, remote=url)
-    _LOGGER.info("Deriving key")
-    # Very slow operation, should probably be securely cached
-    etesync.derive_key(encryption_password)
+    if credentials and _credentials_not_changed((url, username, password), credentials):
+        url, username, password, auth_token, cipher_key = credentials
+        ete_sync = EteSync(username, auth_token, remote=url, cipher_key=cipher_key)
+    else:
+        # Token should be saved instead of requested every time
+        auth_token = Authenticator(url).get_auth_token(username, password)
+
+        ete_sync = EteSync(username, auth_token, remote=url)
+        _LOGGER.info("Deriving key")
+        # Very slow operation, should probably be securely cached
+        cipher_key = ete_sync.derive_key(encryption_password)
+        _write_to_cache(cache_folder, url, username, password, encryption_password, cipher_key)
+
     _LOGGER.info("Syncing")
-    etesync.sync()
+    ete_sync.sync()
     _LOGGER.info("Syncing done")
 
-    items = etesync.list()
+    items = ete_sync.list()
 
     devices = []
 
@@ -68,6 +78,41 @@ def setup_platform(hass, config, add_entities, disc_info=None):
             devices.append(device)
 
     add_entities(devices, True)
+
+
+def _read_from_cache(folder):
+    file = os.path.join(folder, CACHE_FILE)
+    if os.path.exists(file) and os.path.isfile(file):
+        try:
+            with open(file, 'r') as stream:
+                url = stream.readline()
+                username = stream.readline()
+                password = stream.readline()
+                auth_token = stream.readline()
+                cipher_key = stream.readline()
+            return url, username, password, auth_token, cipher_key
+        except IOError:
+            os.remove(file)
+    return None
+
+
+def _write_to_cache(folder, url, username, password, encryption_password, cipher_key):
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+
+    file = os.path.join(folder, CACHE_FILE)
+    try:
+        with open(file, 'w') as stream:
+            stream.writelines([url, username, password, encryption_password, cipher_key])
+    except IOError:
+        _LOGGER.warning("Could not write cache file")
+
+
+def _credentials_not_changed(old, new):
+    for i in range(3):
+        if not old[i] == new[i]:
+            return False
+    return True
 
 
 class EteSyncCalendarEventDevice(CalendarEventDevice):
