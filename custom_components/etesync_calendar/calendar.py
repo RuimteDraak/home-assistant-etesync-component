@@ -23,7 +23,9 @@ DOMAIN = 'etesync_calendar'
 
 CONF_ENCRYPTION_PASSWORD = 'encryption_password'
 CACHE_FOLDER = 'custom_components/etesync_calender/cache'
-CACHE_FILE = 'secret'
+CACHE_FILE_TEXT = 'secret_check'
+CACHE_FILE_BIN = 'secret_key'
+
 CALENDAR_ITEM_TYPE = 'CALENDAR'
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
@@ -81,18 +83,20 @@ def setup_platform(hass, config, add_entities, disc_info=None):
 
 
 def _read_from_cache(folder):
-    file = os.path.join(folder, CACHE_FILE)
-    if os.path.exists(file) and os.path.isfile(file):
+    file_t = os.path.join(folder, CACHE_FILE_TEXT)
+    file_w = os.path.join(folder, CACHE_FILE_BIN)
+    if os.path.exists(file_t) and os.path.isfile(file_t):
         try:
-            with open(file, 'r') as stream:
+            with open(file_t, 'tr') as stream:
                 url = stream.readline()
                 username = stream.readline()
                 password = stream.readline()
                 auth_token = stream.readline()
-                cipher_key = stream.readline()
+            with open(file_w, 'br') as stream:
+                cipher_key = stream.read()
             return url, username, password, auth_token, cipher_key
         except IOError:
-            os.remove(file)
+            os.remove(file_t)
     return None
 
 
@@ -100,10 +104,13 @@ def _write_to_cache(folder, url, username, password, encryption_password, cipher
     if not os.path.exists(folder):
         os.makedirs(folder)
 
-    file = os.path.join(folder, CACHE_FILE)
+    file_t = os.path.join(folder, CACHE_FILE_TEXT)
+    file_b = os.path.join(folder, CACHE_FILE_BIN)
     try:
-        with open(file, 'w') as stream:
-            stream.write('\n'.join([url, username, password, encryption_password, cipher_key]))
+        with open(file_t, 'tw') as stream:
+            stream.write('\n'.join([url, username, password, encryption_password]))
+        with open(file_b, 'bw') as stream:
+            stream.write(cipher_key)
     except IOError:
         _LOGGER.warning("Could not write cache file")
 
