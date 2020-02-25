@@ -52,7 +52,9 @@ def setup_platform(hass, config, add_entities, disc_info=None):
     credentials = _read_from_cache(cache_folder)
 
     if credentials and _credentials_not_changed((url, username, password), credentials):
-        url, username, password, auth_token, cipher_key = credentials
+        url, username, password, cipher_key = credentials
+
+        auth_token = Authenticator(url).get_auth_token(username, password)
         ete_sync = EteSync(username, auth_token, remote=url, cipher_key=cipher_key)
     else:
         # Token should be saved instead of requested every time
@@ -91,10 +93,9 @@ def _read_from_cache(folder):
                 url = stream.readline().strip()
                 username = stream.readline().strip()
                 password = stream.readline().strip()
-                auth_token = stream.readline().strip()
             with open(file_w, 'br') as stream:
                 cipher_key = stream.read()
-            return url, username, password, auth_token, cipher_key
+            return url, username, password, cipher_key
         except IOError:
             os.remove(file_t)
     return None
