@@ -1,6 +1,6 @@
 import voluptuous as vol
 import logging
-import os
+
 from etesync import Authenticator, EteSync
 
 from homeassistant.components.calendar import (
@@ -14,17 +14,17 @@ from homeassistant.const import (
     CONF_PASSWORD,
     CONF_URL,
     CONF_USERNAME,
-    CONF_VERIFY_SSL,
+    # CONF_VERIFY_SSL,
 )
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import generate_entity_id
+
+from .helpers import parse, read_from_cache, write_to_cache
 
 DOMAIN = 'etesync_calendar'
 
 CONF_ENCRYPTION_PASSWORD = 'encryption_password'
 CACHE_FOLDER = 'custom_components/etesync_calendar/cache'
-CACHE_FILE_TEXT = 'secret_check'
-CACHE_FILE_BIN = 'secret_key'
 
 CALENDAR_ITEM_TYPE = 'CALENDAR'
 
@@ -49,9 +49,10 @@ def setup_platform(hass, config, add_entities, disc_info=None):
     encryption_password = config[CONF_ENCRYPTION_PASSWORD]
 
     cache_folder = hass.config.path(CACHE_FOLDER)
-    credentials = _read_from_cache(cache_folder)
+    credentials = read_from_cache(cache_folder)
 
     if credentials and _credentials_not_changed((url, username, password), credentials):
+        _LOGGER.info("Using cached credentials")
         url, username, password, cipher_key = credentials
 
         auth_token = Authenticator(url).get_auth_token(username, password)
@@ -64,11 +65,12 @@ def setup_platform(hass, config, add_entities, disc_info=None):
         _LOGGER.warning("Deriving key, this could take some time")
         # Very slow operation, should probably be securely cached
         cipher_key = ete_sync.derive_key(encryption_password)
-        _write_to_cache(cache_folder, url, username, password, encryption_password, cipher_key)
+        _LOGGER.info("Key derived. Cache result for faster startup times")
+        write_to_cache(cache_folder, url, username, password, encryption_password, cipher_key)
 
-    _LOGGER.warning("Syncing")
+    _LOGGER.info("Syncing")
     ete_sync.sync()
-    _LOGGER.warning("Syncing done")
+    _LOGGER.info("Syncing done")
 
     items = ete_sync.list()
 
@@ -79,42 +81,10 @@ def setup_platform(hass, config, add_entities, disc_info=None):
         if item.info['type'] == CALENDAR_ITEM_TYPE:
             name = f"{username}-{item.info['displayName']}"
             entity_id = generate_entity_id(ENTITY_ID_FORMAT, name, hass=hass)
-            device = EteSyncCalendarEventDevice(item, entity_id)
+            device = EteSyncCalendarEventDevice(item, ete_sync, entity_id)
             devices.append(device)
 
     add_entities(devices, True)
-
-
-def _read_from_cache(folder):
-    file_t = os.path.join(folder, CACHE_FILE_TEXT)
-    file_w = os.path.join(folder, CACHE_FILE_BIN)
-    if os.path.exists(file_t) and os.path.isfile(file_t):
-        try:
-            with open(file_t, 'tr') as stream:
-                url = stream.readline().strip()
-                username = stream.readline().strip()
-                password = stream.readline().strip()
-            with open(file_w, 'br') as stream:
-                cipher_key = stream.read()
-            return url, username, password, cipher_key
-        except IOError:
-            os.remove(file_t)
-    return None
-
-
-def _write_to_cache(folder, url, username, password, encryption_password, cipher_key):
-    if not os.path.exists(folder):
-        os.makedirs(folder)
-
-    file_t = os.path.join(folder, CACHE_FILE_TEXT)
-    file_b = os.path.join(folder, CACHE_FILE_BIN)
-    try:
-        with open(file_t, 'tw') as stream:
-            stream.write('\n'.join([url, username, password, encryption_password]))
-        with open(file_b, 'bw') as stream:
-            stream.write(cipher_key)
-    except IOError:
-        _LOGGER.warning("Could not write cache file")
 
 
 def _credentials_not_changed(old, new):
@@ -128,15 +98,14 @@ def _credentials_not_changed(old, new):
 class EteSyncCalendarEventDevice(CalendarEventDevice):
     """A device for a single etesync calendar."""
 
-    def __init__(self, calendar, entity_id):
-        self._calendar = calendar
-        self._name = calendar.info['displayName']
+    def __init__(self, calendar, ete_sync, entity_id):
+        self._calendar = EteSyncCalendar(calendar, ete_sync)
         self._entity_id = entity_id
 
     @property
     def name(self):
         """Return the name of the entity."""
-        return self._name
+        return self._calendar.name
 
     @property
     def event(self):
@@ -144,3 +113,48 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
 
     async def async_get_events(self, hass, start_date, end_date):
         pass
+
+
+class EteSyncCalendar:
+    """Class that represents an etesync calendar."""
+
+    def __init__(self, raw_data, ete_sync):
+        self._raw_data = raw_data
+        self._ete_sync = ete_sync
+        self._events = []
+
+        events = raw_data.collection.list()
+        for event in events:
+            self._events.append(EteSyncEvent(event))
+
+    @property
+    def name(self):
+        """Return the name of the Calendar"""
+        return self._raw_data.info['displayName']
+
+    @property
+    def first_event(self):
+        return self._events[0]
+
+    def update(self):
+        """Update the calendar data"""
+        self._raw_data = self._ete_sync.get(self._raw_data.info['uid'])
+
+
+class EteSyncEvent:
+    """Class that represents an etesync event."""
+
+    def __init__(self, event):
+        self._raw_event = event
+        raw_properties = event.content.splitlines()
+        properties = []
+
+        for line in raw_properties:
+            key_value = line.split(':', 1)
+            properties.append(key_value)
+
+        self._event = parse(properties)
+
+    @property
+    def summary(self):
+        return self._event['vcalendar']['vevent']['summary']
