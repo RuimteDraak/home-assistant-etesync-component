@@ -20,6 +20,7 @@ from homeassistant.const import (
 )
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import generate_entity_id
+from homeassistant.util import Throttle
 
 from .helpers import parse, read_from_cache, write_to_cache
 
@@ -148,6 +149,7 @@ class EteSyncCalendar:
     def next_event(self):
         return self._events[0]
 
+    @Throttle(datetime.timedelta(minutes=5))
     def update(self):
         """Update the calendar data"""
         self._ete_sync.sync()
