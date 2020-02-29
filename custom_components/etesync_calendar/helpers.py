@@ -27,6 +27,9 @@ def _parse(entries) -> dict:
         elif key == 'end':
             return result
 
+        if key.startswith(('dtstart', 'dtend')):
+            key, value = parse_keyed_timezone(key, value)
+
         if result.get(key):
             val = result[key]
             has_append = getattr(val, "append", None)
@@ -37,6 +40,18 @@ def _parse(entries) -> dict:
         else:
             result[key] = value
     return result
+
+
+def parse_keyed_timezone(key: str, value: str):
+    if ';' not in key or '=' not in key:
+        return key, value
+
+    splitted = key.split(';', 1)
+    timezone = splitted[-1].split('=')[-1]
+    return (splitted[0], {
+        'timezone': timezone,
+        'time': value
+    })
 
 
 def read_from_cache(folder) -> (str, str, str, []):

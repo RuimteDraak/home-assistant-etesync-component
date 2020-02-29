@@ -109,11 +109,13 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
 
     @property
     def event(self):
-        return None
+        return self._calendar.next_event
 
     async def async_get_events(self, hass, start_date, end_date):
         pass
 
+    def update(self):
+        self._calendar.update()
 
 class EteSyncCalendar:
     """Class that represents an etesync calendar."""
@@ -133,12 +135,14 @@ class EteSyncCalendar:
         return self._raw_data.info['displayName']
 
     @property
-    def first_event(self):
+    def next_event(self):
         return self._events[0]
 
     def update(self):
         """Update the calendar data"""
-        self._raw_data = self._ete_sync.get(self._raw_data.info['uid'])
+        self._ete_sync.sync()
+        # TODO update data
+        # self._raw_data = self._ete_sync.get(self._raw_data.info['uid'])
 
 
 class EteSyncEvent:
