@@ -1,5 +1,6 @@
 import voluptuous as vol
 import logging
+import datetime
 
 from etesync import Authenticator, EteSync
 
@@ -162,3 +163,20 @@ class EteSyncEvent:
     @property
     def summary(self):
         return self._event['vcalendar']['vevent']['summary']
+
+    @property
+    def start(self):
+        timeobj = self._get_time('dtstart')
+
+        timezone = timeobj.get('timezone')
+        # TODO use the timezone
+        return datetime.datetime.fromisoformat(timeobj['time'])
+
+
+    @property
+    def end(self):
+        timeobj = self._get_time('dtend')
+        return datetime.datetime.fromisoformat(timeobj['time'])
+
+    def _get_time(self, name: str) -> dict:
+        return self._event['vcalendar']['vevent'][name]
