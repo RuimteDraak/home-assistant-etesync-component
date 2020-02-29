@@ -39,7 +39,7 @@ def _parse(entries) -> dict:
     return result
 
 
-def read_from_cache(folder) -> (str, str, str, str):
+def read_from_cache(folder) -> (str, str, str, []):
     file_t = os.path.join(folder, CACHE_FILE_TEXT)
     file_w = os.path.join(folder, CACHE_FILE_BIN)
     if os.path.exists(file_t) and os.path.isfile(file_t):
@@ -56,7 +56,7 @@ def read_from_cache(folder) -> (str, str, str, str):
     return None
 
 
-def write_to_cache(folder: str, url: str, username: str, password: str, encryption_password: str, cipher_key: []):
+def write_to_cache(folder: str, url: str, username: str, password: str, cipher_key: []):
     if not os.path.exists(folder):
         os.makedirs(folder)
 
@@ -64,7 +64,7 @@ def write_to_cache(folder: str, url: str, username: str, password: str, encrypti
     file_b = os.path.join(folder, CACHE_FILE_BIN)
     try:
         with open(file_t, 'tw') as stream:
-            stream.write('\n'.join([url, username, password, encryption_password]))
+            stream.write('\n'.join([url, username, password]))
         with open(file_b, 'bw') as stream:
             stream.write(cipher_key)
     except IOError:

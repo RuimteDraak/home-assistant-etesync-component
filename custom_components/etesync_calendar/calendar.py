@@ -66,7 +66,7 @@ def setup_platform(hass, config, add_entities, disc_info=None):
         # Very slow operation, should probably be securely cached
         cipher_key = ete_sync.derive_key(encryption_password)
         _LOGGER.info("Key derived. Cache result for faster startup times")
-        write_to_cache(cache_folder, url, username, password, encryption_password, cipher_key)
+        write_to_cache(cache_folder, url, username, password, cipher_key)
 
     _LOGGER.info("Syncing")
     ete_sync.sync()
