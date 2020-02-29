@@ -15,7 +15,11 @@ def parse(entries: list) -> dict:
 # Assumes entries is a generator, not a plain list
 def _parse(entries) -> dict:
     result = {}
-    for key, value in entries:
+    for entry in entries:
+        # Skip malformed (?) entries
+        if len(entry) != 2:
+            continue
+        key, value = entry
         key = key.lower()
         if key == 'begin':
             result[value.lower()] = _parse(entries)
