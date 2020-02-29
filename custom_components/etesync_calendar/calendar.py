@@ -16,6 +16,7 @@ from homeassistant.const import (
     CONF_URL,
     CONF_USERNAME,
     # CONF_VERIFY_SSL,
+    STATE_OFF,
 )
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import generate_entity_id
@@ -112,6 +113,14 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
     def event(self):
         return self._calendar.next_event
 
+    @property
+    def state_attributes(self):
+        return None
+
+    @property
+    def state(self):
+        return STATE_OFF
+
     async def async_get_events(self, hass, start_date, end_date):
         pass
 
@@ -171,7 +180,6 @@ class EteSyncEvent:
         timezone = timeobj.get('timezone')
         # TODO use the timezone
         return datetime.datetime.fromisoformat(timeobj['time'])
-
 
     @property
     def end(self):
