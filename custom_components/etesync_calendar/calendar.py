@@ -243,5 +243,5 @@ class EteSyncEvent:
             return datetime.datetime(year=int(year), month=int(month), day=int(day),
                                      hour=int(hours), minute=int(minutes), second=int(seconds))
         except ValueError as e:
-            _LOGGER.warning("Could not parse %s. ", raw_datetime)
+            _LOGGER.warning(f"Could not parse {raw_datetime}. ")
             return None
