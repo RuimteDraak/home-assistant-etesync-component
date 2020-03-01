@@ -239,12 +239,12 @@ class EteSyncEvent:
             return None
 
         year = raw_datetime[:4]
-        month = raw_datetime[5:6]
-        day = raw_datetime[7:8]
+        month = raw_datetime[4:6]
+        day = raw_datetime[6:8]
 
-        hours = raw_datetime[10:11]
-        minutes = raw_datetime[12:13]
-        seconds = raw_datetime[14:15]
+        hours = raw_datetime[9:11]
+        minutes = raw_datetime[11:13]
+        seconds = raw_datetime[13:15]
 
         try:
             return datetime.datetime(year=int(year), month=int(month), day=int(day),
