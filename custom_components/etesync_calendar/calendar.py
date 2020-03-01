@@ -224,14 +224,17 @@ class EteSyncEvent:
     @property
     def end(self) -> datetime.datetime:
         timeobj = self._get_time('dtend')
+        if timeobj is None:
+            return datetime.datetime.min
+
         time = self._parse_date_time(timeobj['time'])
 
         if time is None:
             return datetime.datetime.min
         return time
 
-    def _get_time(self, name: str) -> Dict:
-        return self._event['vcalendar']['vevent'][name]
+    def _get_time(self, name: str) -> Optional[Dict[str, str]]:
+        return self._event['vcalendar']['vevent'].get(name)
 
     @staticmethod
     def _parse_date_time(raw_datetime: str) -> Optional[datetime.datetime]:
