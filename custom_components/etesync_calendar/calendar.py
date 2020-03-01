@@ -120,12 +120,13 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
     def state_attributes(self):
         event = self.event
         return {
+            "id": event.id,
             "message": event.summary,
             "all_day": False,
             "start_time": event.start,
             "end_time": event.end,
             "location": None,
-            "description": None,
+            "description": event.description,
         }
 
     @property
@@ -207,8 +208,16 @@ class EteSyncEvent:
         self._event = parse(properties)
 
     @property
+    def id(self):
+        return self._event['vcalendar']['vevent']['uid']
+
+    @property
     def summary(self):
-        return self._event['vcalendar']['vevent']['summary']
+        return self._event['vcalendar']['vevent'].get('summary')
+
+    @property
+    def description(self):
+        return self._event['vcalendar']['vevent'].get('description')
 
     @property
     def start(self) -> datetime.datetime:
