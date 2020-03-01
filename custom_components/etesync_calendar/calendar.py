@@ -207,12 +207,26 @@ class EteSyncEvent:
 
         timezone = timeobj.get('timezone')
         # TODO use the timezone
-        return datetime.datetime.fromisoformat(timeobj['time'])
+        return self._parse_date_time(timeobj['time'])
 
     @property
     def end(self):
         timeobj = self._get_time('dtend')
-        return datetime.datetime.fromisoformat(timeobj['time'])
+        return self._parse_date_time(timeobj['time'])
 
     def _get_time(self, name: str) -> dict:
         return self._event['vcalendar']['vevent'][name]
+
+    @staticmethod
+    def _parse_date_time(raw_datetime: str):
+        """Parse datetime in format 'YYYYMMDDTHHmmss'"""
+        year = raw_datetime[:4]
+        month = raw_datetime[5:6]
+        day = raw_datetime[7:8]
+
+        hours = raw_datetime[10:11]
+        minutes = raw_datetime[12:13]
+        seconds = raw_datetime[14:15]
+
+        return datetime.datetime(year=int(year), month=int(month), day=int(day),
+                                 hour=int(hours), minute=int(minutes), second=int(seconds))
