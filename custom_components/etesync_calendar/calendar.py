@@ -236,5 +236,10 @@ class EteSyncEvent:
         minutes = raw_datetime[12:13]
         seconds = raw_datetime[14:15]
 
-        return datetime.datetime(year=int(year), month=int(month), day=int(day),
-                                 hour=int(hours), minute=int(minutes), second=int(seconds))
+        try:
+            return datetime.datetime(year=int(year), month=int(month), day=int(day),
+                                     hour=int(hours), minute=int(minutes), second=int(seconds))
+        except ValueError as e:
+            _LOGGER.warning("Could not parse {0}. got: year {1}, month {2}, day {3}, hour {4}, minute {5}, second {6}",
+                            raw_datetime, year, month, day, hours, minutes, seconds)
+            return None
