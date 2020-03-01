@@ -17,6 +17,7 @@ from homeassistant.const import (
     CONF_USERNAME,
     # CONF_VERIFY_SSL,
     STATE_OFF,
+    STATE_ON
 )
 import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.entity import generate_entity_id
@@ -116,10 +117,34 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
 
     @property
     def state_attributes(self):
-        return None
+        event = self.event
+        return {
+            "message": event.summary,
+            "all_day": False,
+            "start_time": event.start,
+            "end_time": event.end,
+            "location": None,
+            "description": None,
+        }
 
     @property
     def state(self):
+        """Return the state of the calendar event."""
+        event = self.event
+        if event is None:
+            return STATE_OFF
+
+        start = event.start
+        end = event.end
+
+        if start is None or end is None:
+            return STATE_OFF
+
+        now = datetime.datetime.now()
+
+        if start <= now < end:
+            return STATE_ON
+
         return STATE_OFF
 
     async def async_get_events(self, hass, start_date, end_date):
@@ -127,6 +152,7 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
 
     def update(self):
         self._calendar.update()
+
 
 class EteSyncCalendar:
     """Class that represents an etesync calendar."""
