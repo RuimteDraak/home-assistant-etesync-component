@@ -228,6 +228,9 @@ class EteSyncEvent:
     @staticmethod
     def _parse_date_time(raw_datetime: str):
         """Parse datetime in format 'YYYYMMDDTHHmmss'"""
+        if not raw_datetime:
+            return None
+
         year = raw_datetime[:4]
         month = raw_datetime[5:6]
         day = raw_datetime[7:8]
