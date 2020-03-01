@@ -3,6 +3,7 @@ import logging
 import datetime
 
 from etesync import Authenticator, EteSync
+from typing import Optional, Dict
 
 from homeassistant.components.calendar import (
     ENTITY_ID_FORMAT,
@@ -229,11 +230,11 @@ class EteSyncEvent:
             return datetime.datetime.min
         return time
 
-    def _get_time(self, name: str) -> dict:
+    def _get_time(self, name: str) -> Dict:
         return self._event['vcalendar']['vevent'][name]
 
     @staticmethod
-    def _parse_date_time(raw_datetime: str) -> datetime.datetime:
+    def _parse_date_time(raw_datetime: str) -> Optional[datetime.datetime]:
         """Parse datetime in format 'YYYYMMDDTHHmmss'"""
         if not raw_datetime:
             return None
