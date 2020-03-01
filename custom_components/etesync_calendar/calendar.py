@@ -218,7 +218,7 @@ class EteSyncEvent:
         time = self._parse_date_time(timeobj['time'])
         if time is None:
             return datetime.datetime.max
-        return None
+        return time
 
     @property
     def end(self) -> datetime.datetime:
