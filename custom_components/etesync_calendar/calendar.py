@@ -210,23 +210,30 @@ class EteSyncEvent:
         return self._event['vcalendar']['vevent']['summary']
 
     @property
-    def start(self):
+    def start(self) -> datetime.datetime:
         timeobj = self._get_time('dtstart')
 
         timezone = timeobj.get('timezone')
         # TODO use the timezone
-        return self._parse_date_time(timeobj['time'])
+        time = self._parse_date_time(timeobj['time'])
+        if not time:
+            return datetime.datetime.max
+        return None
 
     @property
-    def end(self):
+    def end(self) -> datetime.datetime:
         timeobj = self._get_time('dtend')
-        return self._parse_date_time(timeobj['time'])
+        time = self._parse_date_time(timeobj['time'])
+
+        if not time:
+            return datetime.datetime.min
+        return time
 
     def _get_time(self, name: str) -> dict:
         return self._event['vcalendar']['vevent'][name]
 
     @staticmethod
-    def _parse_date_time(raw_datetime: str):
+    def _parse_date_time(raw_datetime: str) -> datetime.datetime:
         """Parse datetime in format 'YYYYMMDDTHHmmss'"""
         if not raw_datetime:
             return None
