@@ -216,7 +216,7 @@ class EteSyncEvent:
         timezone = timeobj.get('timezone')
         # TODO use the timezone
         time = self._parse_date_time(timeobj['time'])
-        if not time:
+        if time is None:
             return datetime.datetime.max
         return None
 
@@ -225,7 +225,7 @@ class EteSyncEvent:
         timeobj = self._get_time('dtend')
         time = self._parse_date_time(timeobj['time'])
 
-        if not time:
+        if time is None:
             return datetime.datetime.min
         return time
 
