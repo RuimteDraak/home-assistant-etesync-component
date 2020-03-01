@@ -161,10 +161,13 @@ class EteSyncCalendar:
         self._raw_data = raw_data
         self._ete_sync = ete_sync
         self._events = []
+        self._build_events()
 
-        events = raw_data.collection.list()
+    def _build_events(self):
+        events = self._raw_data.collection.list()
         for event in events:
             self._events.append(EteSyncEvent(event))
+        self._events.sort(key=lambda e: e.start)
 
     @property
     def name(self):
@@ -173,14 +176,19 @@ class EteSyncCalendar:
 
     @property
     def next_event(self):
-        return self._events[0]
+        now = datetime.datetime.now()
+        for event in self._events:
+            if event.end > now:
+                return event
+        return None
 
     @Throttle(datetime.timedelta(minutes=5))
     def update(self):
         """Update the calendar data"""
         self._ete_sync.sync()
         # TODO update data
-        # self._raw_data = self._ete_sync.get(self._raw_data.info['uid'])
+        self._raw_data = self._ete_sync.get(self._raw_data.info['uid'])
+        self._build_events()
 
 
 class EteSyncEvent:
