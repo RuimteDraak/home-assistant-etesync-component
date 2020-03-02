@@ -104,6 +104,8 @@ def _credentials_not_changed(old, new) -> bool:
 
 def add_timezone(dt: datetime.datetime, tz: str) -> datetime.datetime:
     """Add the given tz timezone to the datetime and return the result"""
+    if tz is None or tz.lower() == 'date':
+        return dt
     timezone = pytz.timezone(tz)
     if dt is not None and tz is not None:
         return timezone.localize(dt)
