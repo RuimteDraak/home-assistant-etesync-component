@@ -113,7 +113,7 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
         return self._calendar.name
 
     @property
-    def event(self):
+    def event(self) -> "EteSyncEvent":
         return self._calendar.next_event
 
     @property
@@ -122,7 +122,7 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
         return {
             "id": event.id,
             "message": event.summary,
-            "all_day": False,
+            "all_day": event.is_all_day,
             "start_time": event.start,
             "end_time": event.end,
             "location": None,
@@ -213,11 +213,11 @@ class EteSyncEvent:
 
     @property
     def summary(self):
-        return self._event['vcalendar']['vevent'].get('summary')
+        return self._event['vcalendar']['vevent'].get('summary', '')
 
     @property
     def description(self):
-        return self._event['vcalendar']['vevent'].get('description')
+        return self._event['vcalendar']['vevent'].get('description', '')
 
     @property
     def start(self) -> datetime.datetime:
@@ -225,28 +225,38 @@ class EteSyncEvent:
 
         timezone = timeobj.get('timezone')
         # TODO use the timezone
-        time = self._parse_date_time(timeobj['time'])
+        time = self._parse_date_time(timeobj['time'], True)
         if time is None:
             return datetime.datetime.max
         return time
 
     @property
     def end(self) -> datetime.datetime:
+
+        # the endtime might not be specified on a full day event
         timeobj = self._get_time('dtend')
         if timeobj is None:
-            return datetime.datetime.min
+            start = self.start
+            if start is not None and start.time == datetime.time.min:
+                return datetime.datetime.combine(start.date(), datetime.time.max, start.tzinfo)
+            else:
+                return datetime.datetime.min
 
-        time = self._parse_date_time(timeobj['time'])
+        time = self._parse_date_time(timeobj['time'], False)
 
         if time is None:
             return datetime.datetime.min
         return time
 
+    @property
+    def is_all_day(self):
+        return self.start.time == datetime.time.min and self.end.time == datetime.time.max
+
     def _get_time(self, name: str) -> Optional[Dict[str, str]]:
         return self._event['vcalendar']['vevent'].get(name)
 
     @staticmethod
-    def _parse_date_time(raw_datetime: str) -> Optional[datetime.datetime]:
+    def _parse_date_time(raw_datetime: str, is_start=True) -> Optional[datetime.datetime]:
         """Parse datetime in format 'YYYYMMDDTHHmmss'"""
         if not raw_datetime:
             return None
@@ -259,9 +269,13 @@ class EteSyncEvent:
         minutes = raw_datetime[11:13]
         seconds = raw_datetime[13:15]
 
-        try:
-            return datetime.datetime(year=int(year), month=int(month), day=int(day),
-                                     hour=int(hours), minute=int(minutes), second=int(seconds))
-        except ValueError as e:
-            _LOGGER.warning(f"Could not parse {raw_datetime}. ")
-            return None
+        if hours == '' and minutes == '' and seconds == '':
+            if is_start:
+                return datetime.datetime.combine(datetime.date(year=int(year), month=int(month), day=int(day)),
+                                                 datetime.time.min)
+            else:
+                return datetime.datetime.combine(datetime.date(year=int(year), month=int(month), day=int(day)),
+                                                 datetime.time.max)
+
+        return datetime.datetime(year=int(year), month=int(month), day=int(day),
+                                 hour=int(hours), minute=int(minutes), second=int(seconds))
