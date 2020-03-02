@@ -30,6 +30,7 @@ from .helpers import parse, read_from_cache, write_to_cache
 DOMAIN = 'etesync_calendar'
 
 CONF_ENCRYPTION_PASSWORD = 'encryption_password'
+CONF_DEFAULT_TIMEZONE = 'default_timezone'
 CACHE_FOLDER = 'custom_components/etesync_calendar/cache'
 
 CALENDAR_ITEM_TYPE = 'CALENDAR'
@@ -40,12 +41,14 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
         vol.Required(CONF_USERNAME): cv.string,
         vol.Required(CONF_PASSWORD): cv.string,
         vol.Required(CONF_ENCRYPTION_PASSWORD): cv.string,
-
+        vol.Optional(CONF_DEFAULT_TIMEZONE, default='Europe/Amsterdam'): cv.string,
         # vol.Optional(CONF_VERIFY_SSL, default=True): cv.boolean,
     }
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+DEFAULT_TIMEZONE = ''
 
 
 def setup_platform(hass, config, add_entities, disc_info=None):
@@ -53,6 +56,9 @@ def setup_platform(hass, config, add_entities, disc_info=None):
     username = config[CONF_USERNAME]
     password = config[CONF_PASSWORD]
     encryption_password = config[CONF_ENCRYPTION_PASSWORD]
+
+    global DEFAULT_TIMEZONE
+    DEFAULT_TIMEZONE = config[CONF_DEFAULT_TIMEZONE]
 
     cache_folder = hass.config.path(CACHE_FOLDER)
     credentials = read_from_cache(cache_folder)
@@ -105,10 +111,10 @@ def _credentials_not_changed(old, new) -> bool:
 def add_timezone(dt: datetime.datetime, tz: str) -> datetime.datetime:
     """Add the given tz timezone to the datetime and return the result"""
     if tz is None or tz.lower() == 'date':
-        return dt
-    timezone = pytz.timezone(tz)
+        return pytz.timezone(DEFAULT_TIMEZONE).localize(dt)
+
     if dt is not None and tz is not None:
-        return timezone.localize(dt)
+        return pytz.timezone(tz).localize(dt)
 
 
 class EteSyncCalendarEventDevice(CalendarEventDevice):
