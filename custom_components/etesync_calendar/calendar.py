@@ -78,16 +78,16 @@ def setup_platform(hass, config, add_entities, disc_info=None):
     ete_sync.sync()
     _LOGGER.info("Syncing done")
 
-    items = ete_sync.list()
+    journals = ete_sync.list()
 
     devices = []
 
-    for item in items:
+    for journal in journals:
         # Filter task list / address book's
-        if item.info['type'] == CALENDAR_ITEM_TYPE:
-            name = f"{username}-{item.info['displayName']}"
+        if journal.info['type'] == CALENDAR_ITEM_TYPE:
+            name = f"{username}-{journal.info['displayName']}"
             entity_id = generate_entity_id(ENTITY_ID_FORMAT, name, hass=hass)
-            device = EteSyncCalendarEventDevice(item, ete_sync, entity_id)
+            device = EteSyncCalendarEventDevice(hass, journal, ete_sync, entity_id)
             devices.append(device)
 
     add_entities(devices, True)
@@ -112,7 +112,8 @@ def add_timezone(dt: datetime.datetime, tz: str) -> datetime.datetime:
 class EteSyncCalendarEventDevice(CalendarEventDevice):
     """A device for a single etesync calendar."""
 
-    def __init__(self, calendar, ete_sync, entity_id):
+    def __init__(self, hass, calendar, ete_sync, entity_id):
+        self._hass = hass
         self._calendar = EteSyncCalendar(calendar, ete_sync)
         self._entity_id = entity_id
 
@@ -160,7 +161,7 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
         return STATE_OFF
 
     async def async_get_events(self, hass, start_date, end_date):
-        pass
+        return await hass.async_add_job(self._calendar.get_events_in_range, start_date, end_date)
 
     def update(self):
         self._calendar.update()
@@ -181,6 +182,10 @@ class EteSyncCalendar:
         for event in events:
             self._events.append(EteSyncEvent(event))
         self._events.sort(key=lambda e: e.start)
+
+    def get_events_in_range(self, start_date: datetime.datetime, end_date: datetime.datetime):
+        # TODO filter on provided dates
+        return self._events 
 
     @property
     def name(self):
