@@ -87,7 +87,7 @@ def setup_platform(hass, config, add_entities, disc_info=None):
         if item.info['type'] == CALENDAR_ITEM_TYPE:
             name = f"{username}-{item.info['displayName']}"
             entity_id = generate_entity_id(ENTITY_ID_FORMAT, name, hass=hass)
-            device = EteSyncCalendarEventDevice(hass, item, ete_sync, entity_id)
+            device = EteSyncCalendarEventDevice(item, ete_sync, entity_id)
             devices.append(device)
 
     add_entities(devices, True)
