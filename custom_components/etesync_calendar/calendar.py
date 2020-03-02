@@ -1,6 +1,7 @@
 import voluptuous as vol
 import logging
 import datetime
+import pytz
 
 from etesync import Authenticator, EteSync
 from typing import Optional, Dict
@@ -86,18 +87,26 @@ def setup_platform(hass, config, add_entities, disc_info=None):
         if item.info['type'] == CALENDAR_ITEM_TYPE:
             name = f"{username}-{item.info['displayName']}"
             entity_id = generate_entity_id(ENTITY_ID_FORMAT, name, hass=hass)
-            device = EteSyncCalendarEventDevice(item, ete_sync, entity_id)
+            device = EteSyncCalendarEventDevice(hass, item, ete_sync, entity_id)
             devices.append(device)
 
     add_entities(devices, True)
 
 
-def _credentials_not_changed(old, new):
+def _credentials_not_changed(old, new) -> bool:
+    """Returns true if the first 3 values of old and new are not equal."""
     for i in range(3):
         if not old[i] == new[i]:
             _LOGGER.warning("credentials have changed!")
             return False
     return True
+
+
+def add_timezone(dt: datetime.datetime, tz: str) -> datetime.datetime:
+    """Add the given tz timezone to the datetime and return the result"""
+    timezone = pytz.timezone(tz)
+    if dt is not None and tz is not None:
+        return timezone.localize(dt)
 
 
 class EteSyncCalendarEventDevice(CalendarEventDevice):
@@ -114,6 +123,7 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
 
     @property
     def event(self) -> "EteSyncEvent":
+        """Returns the closest upcoming or current event."""
         return self._calendar.next_event
 
     @property
@@ -160,6 +170,7 @@ class EteSyncCalendar:
     """Class that represents an etesync calendar."""
 
     def __init__(self, raw_data, ete_sync):
+        """Initialize the EteSyncCalendar class."""
         self._raw_data = raw_data
         self._ete_sync = ete_sync
         self._events = []
@@ -178,6 +189,7 @@ class EteSyncCalendar:
 
     @property
     def next_event(self):
+        """Returns the closest upcoming or current event."""
         now = datetime.datetime.now()
         for event in self._events:
             if event.end > now:
@@ -197,6 +209,7 @@ class EteSyncEvent:
     """Class that represents an etesync event."""
 
     def __init__(self, event):
+        """Initialize the EteSyncEvent class."""
         self._raw_event = event
         raw_properties = event.content.splitlines()
         properties = []
@@ -209,30 +222,36 @@ class EteSyncEvent:
 
     @property
     def id(self):
+        """Returns the Event id."""
         return self._event['vcalendar']['vevent']['uid']
 
     @property
     def summary(self):
+        """Returns the event summary."""
         return self._event['vcalendar']['vevent'].get('summary', '')
 
     @property
     def description(self):
+        """Returns the event description."""
         return self._event['vcalendar']['vevent'].get('description', '')
 
     @property
     def start(self) -> datetime.datetime:
+        """Returns the start datetime of the Event or datetime.max if none."""
         timeobj = self._get_time('dtstart')
 
         timezone = timeobj.get('timezone')
-        # TODO use the timezone
-        time = self._parse_date_time(timeobj['time'], True)
+        time = self._parse_date_time(timeobj['time'], timezone, True)
+
         if time is None:
             return datetime.datetime.max
         return time
 
     @property
     def end(self) -> datetime.datetime:
-
+        """Returns the end datetime of the Event or datetime.min if none.
+            If it is an all day event, will return datetime.date + time.max.
+        """
         # the endtime might not be specified on a full day event
         timeobj = self._get_time('dtend')
         if timeobj is None:
@@ -242,7 +261,8 @@ class EteSyncEvent:
             else:
                 return datetime.datetime.min
 
-        time = self._parse_date_time(timeobj['time'], False)
+        timezone = timeobj.get('timezone')
+        time = self._parse_date_time(timeobj['time'], timezone, False)
 
         if time is None:
             return datetime.datetime.min
@@ -250,13 +270,15 @@ class EteSyncEvent:
 
     @property
     def is_all_day(self):
+        """Returns true if this is an all day event."""
         return self.start.time == datetime.time.min and self.end.time == datetime.time.max
 
     def _get_time(self, name: str) -> Optional[Dict[str, str]]:
+        """Read the time form the raw data."""
         return self._event['vcalendar']['vevent'].get(name)
 
     @staticmethod
-    def _parse_date_time(raw_datetime: str, is_start=True) -> Optional[datetime.datetime]:
+    def _parse_date_time(raw_datetime: str, timezone: str, is_start=True) -> Optional[datetime.datetime]:
         """Parse datetime in format 'YYYYMMDDTHHmmss'"""
         if not raw_datetime:
             return None
@@ -271,11 +293,13 @@ class EteSyncEvent:
 
         if hours == '' and minutes == '' and seconds == '':
             if is_start:
-                return datetime.datetime.combine(datetime.date(year=int(year), month=int(month), day=int(day)),
+                dt = datetime.datetime.combine(datetime.date(year=int(year), month=int(month), day=int(day)),
                                                  datetime.time.min)
             else:
-                return datetime.datetime.combine(datetime.date(year=int(year), month=int(month), day=int(day)),
+                dt = datetime.datetime.combine(datetime.date(year=int(year), month=int(month), day=int(day)),
                                                  datetime.time.max)
+        else:
+            dt = datetime.datetime(year=int(year), month=int(month), day=int(day),
+                                   hour=int(hours), minute=int(minutes), second=int(seconds))
 
-        return datetime.datetime(year=int(year), month=int(month), day=int(day),
-                                 hour=int(hours), minute=int(minutes), second=int(seconds))
+        return add_timezone(dt, timezone)
