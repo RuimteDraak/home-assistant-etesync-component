@@ -271,7 +271,7 @@ class EteSyncEvent:
         if timeobj is None:
             start = self.start
             if start is not None and start.time == datetime.time.min:
-                return add_timezone(datetime.datetime.combine(start.date(), datetime.time.max, start.tzinfo), 'utc')
+                return datetime.datetime.combine(start.date(), datetime.time.max, start.tzinfo)
             else:
                 return add_timezone(datetime.datetime.min, 'utc')
 
