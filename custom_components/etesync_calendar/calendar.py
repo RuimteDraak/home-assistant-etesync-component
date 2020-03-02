@@ -161,7 +161,7 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
         if start is None or end is None:
             return STATE_OFF
 
-        now = datetime.datetime.now()
+        now = datetime.datetime.now().astimezone()
 
         if start <= now < end:
             return STATE_ON
@@ -203,7 +203,7 @@ class EteSyncCalendar:
     @property
     def next_event(self):
         """Returns the closest upcoming or current event."""
-        now = datetime.datetime.now()
+        now = datetime.datetime.now().astimezone()
         for event in self._events:
             if event.end > now:
                 return event
