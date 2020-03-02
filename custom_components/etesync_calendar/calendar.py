@@ -108,7 +108,7 @@ def _credentials_not_changed(old, new) -> bool:
     return True
 
 
-def add_timezone(dt: datetime.datetime, tz: str) -> datetime.datetime:
+def add_timezone(dt: datetime.datetime, tz: Optional[str]) -> datetime.datetime:
     """Add the given tz timezone to the datetime and return the result"""
     if tz is None or tz.lower() == 'date':
         return pytz.timezone(DEFAULT_TIMEZONE).localize(dt)
@@ -257,7 +257,7 @@ class EteSyncEvent:
         time = self._parse_date_time(timeobj['time'], timezone, True)
 
         if time is None:
-            return datetime.datetime.max
+            return add_timezone(datetime.datetime.max, None)
         return time
 
     @property
@@ -278,7 +278,7 @@ class EteSyncEvent:
         time = self._parse_date_time(timeobj['time'], timezone, False)
 
         if time is None:
-            return datetime.datetime.min
+            return add_timezone(datetime.datetime.min, None)
         return time
 
     @property
