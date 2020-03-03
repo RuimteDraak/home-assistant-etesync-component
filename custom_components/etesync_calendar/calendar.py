@@ -4,7 +4,7 @@ import datetime
 import pytz
 
 from etesync import Authenticator, EteSync
-from typing import Optional, Dict
+from typing import Optional, Dict, List
 
 from homeassistant.components.calendar import (
     ENTITY_ID_FORMAT,
@@ -51,7 +51,7 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_TIMEZONE = ''
 
 
-def setup_platform(hass, config, add_entities, disc_info=None):
+async def async_setup_platform(hass, config, add_entities, disc_info=None):
     url = config[CONF_URL]
     username = config[CONF_USERNAME]
     password = config[CONF_PASSWORD]
@@ -76,12 +76,12 @@ def setup_platform(hass, config, add_entities, disc_info=None):
         ete_sync = EteSync(username, auth_token, remote=url)
         _LOGGER.warning("Deriving key, this could take some time")
         # Very slow operation, should probably be securely cached
-        cipher_key = ete_sync.derive_key(encryption_password)
+        cipher_key = await hass.async_add_executor_job(ete_sync.derive_key, encryption_password)
         _LOGGER.info("Key derived. Cache result for faster startup times")
         write_to_cache(cache_folder, url, username, password, cipher_key)
 
     _LOGGER.info("Syncing")
-    ete_sync.sync()
+    await hass.async_add_executor_job(ete_sync.sync)
     _LOGGER.info("Syncing done")
 
     journals = ete_sync.list()
@@ -170,7 +170,7 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
         return STATE_OFF
 
     async def async_get_events(self, hass, start_date, end_date):
-        return await hass.async_add_job(self._calendar.get_events_in_range, start_date, end_date)
+        return await hass.async_add_executor_job(self._calendar.get_events_in_range, start_date, end_date)
 
     def update(self):
         self._calendar.update()
@@ -179,11 +179,11 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
 class EteSyncCalendar:
     """Class that represents an etesync calendar."""
 
-    def __init__(self, raw_data, ete_sync):
+    def __init__(self, raw_data, ete_sync: "EteSync"):
         """Initialize the EteSyncCalendar class."""
         self._raw_data = raw_data
         self._ete_sync = ete_sync
-        self._events = []
+        self._events: List[EteSyncEvent] = []
         self._build_events()
 
     def _build_events(self):
@@ -193,8 +193,13 @@ class EteSyncCalendar:
         self._events.sort(key=lambda e: e.start)
 
     def get_events_in_range(self, start_date: datetime.datetime, end_date: datetime.datetime):
-        # TODO filter on provided dates
-        return self._events 
+        """Return calendar events within a datetime range."""
+
+        events = []
+        for event in self._events:
+            if event.start > end_date and event.end < start_date:
+                events.append(event)
+        return events
 
     @property
     def name(self):
