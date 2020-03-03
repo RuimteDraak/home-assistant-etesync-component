@@ -76,12 +76,12 @@ async def async_setup_platform(hass, config, add_entities, disc_info=None):
         ete_sync = EteSync(username, auth_token, remote=url)
         _LOGGER.warning("Deriving key, this could take some time")
         # Very slow operation, should probably be securely cached
-        cipher_key = await hass.async_add_executor_job(ete_sync.derive_key, encryption_password)
+        cipher_key = ete_sync.derive_key(encryption_password)
         _LOGGER.info("Key derived. Cache result for faster startup times")
         write_to_cache(cache_folder, url, username, password, cipher_key)
 
     _LOGGER.info("Syncing")
-    await hass.async_add_executor_job(ete_sync.sync)
+    ete_sync.sync()
     _LOGGER.info("Syncing done")
 
     journals = ete_sync.list()
