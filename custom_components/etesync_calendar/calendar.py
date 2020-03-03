@@ -51,7 +51,7 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_TIMEZONE = ''
 
 
-async def async_setup_platform(hass, config, add_entities, disc_info=None):
+def setup_platform(hass, config, add_entities, disc_info=None):
     url = config[CONF_URL]
     username = config[CONF_USERNAME]
     password = config[CONF_PASSWORD]
