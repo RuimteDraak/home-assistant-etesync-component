@@ -170,7 +170,7 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
         return STATE_OFF
 
     async def async_get_events(self, hass, start_date, end_date):
-        return await hass.async_add_executor_job(self._calendar.get_events_in_range, start_date, end_date)
+        return self._calendar.get_events_in_range(start_date, end_date)
 
     def update(self):
         self._calendar.update()
