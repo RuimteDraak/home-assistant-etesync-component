@@ -220,7 +220,7 @@ class EteSyncCalendar:
         """Update the calendar data"""
         self._ete_sync.sync()
         # TODO update data
-        self._raw_data = self._ete_sync.get(self._raw_data.info['uid'])
+        self._raw_data = self._ete_sync.get(self._raw_data.uid)
         self._build_events()
 
 
