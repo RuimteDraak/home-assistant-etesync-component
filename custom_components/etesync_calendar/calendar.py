@@ -139,6 +139,8 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
     @property
     def state_attributes(self):
         event = self.event
+        if event is None:
+            return None
         return {
             "id": event.id,
             "message": event.summary,
