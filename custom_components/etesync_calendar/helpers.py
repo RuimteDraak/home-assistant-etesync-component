@@ -1,13 +1,15 @@
 import os
 import logging
 
+from typing import List, Tuple
+
 _LOGGER = logging.getLogger(__name__)
 
 CACHE_FILE_TEXT = 'secret_check'
 CACHE_FILE_BIN = 'secret_key'
 
 
-def parse(entries: list) -> dict:
+def parse(entries: List[Tuple[str, str]]) -> dict:
     iterator = iter(entries)
     return _parse(iterator)
 
@@ -30,6 +32,9 @@ def _parse(entries) -> dict:
         if key.startswith(('dtstart', 'dtend')):
             key, value = parse_keyed_timezone(key, value)
 
+        if key == 'rrule':
+            value = parse_repeating(value)
+
         if result.get(key):
             val = result[key]
             has_append = getattr(val, "append", None)
@@ -39,6 +44,16 @@ def _parse(entries) -> dict:
                 result[key] = [val, value]
         else:
             result[key] = value
+    return result
+
+
+def parse_repeating(value: str):
+    values = value.split(';')
+
+    result = {}
+    for v in values:
+        split = v.split('=', 1)
+        result[split[0].lower()] = split[1].lower()
     return result
 
 

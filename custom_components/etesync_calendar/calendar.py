@@ -12,7 +12,6 @@ from homeassistant.components.calendar import (
     CalendarEventDevice
 )
 
-
 from homeassistant.const import (
     CONF_PASSWORD,
     CONF_URL,
@@ -199,7 +198,7 @@ class EteSyncCalendar:
 
         events = []
         for event in self._events:
-            if event.start > end_date and event.end < start_date:
+            if event.is_in_range(start_date, end_date):
                 events.append(event)
         return events
 
@@ -242,19 +241,23 @@ class EteSyncEvent:
         self._event = parse(properties)
 
     @property
-    def id(self):
+    def id(self) -> str:
         """Returns the Event id."""
         return self._event['vcalendar']['vevent']['uid']
 
     @property
-    def summary(self):
+    def summary(self) -> str:
         """Returns the event summary."""
         return self._event['vcalendar']['vevent'].get('summary', '')
 
     @property
-    def description(self):
+    def description(self) -> str:
         """Returns the event description."""
         return self._event['vcalendar']['vevent'].get('description', '')
+
+    @property
+    def is_recurring(self) -> bool:
+        return self._event['vcalendar']['vevent'].get('rrule') is not None
 
     @property
     def start(self) -> datetime.datetime:
@@ -290,9 +293,49 @@ class EteSyncEvent:
         return time
 
     @property
-    def is_all_day(self):
+    def duration(self) -> datetime.timedelta:
+        """
+        :return: The duration as timedelta
+        """
+        duration_text = self._event['vcalendar']['vevent'].get('duration')
+        if duration_text is not None:
+            return self._parse_duration(duration_text)
+
+
+    @property
+    def is_all_day(self) -> bool:
         """Returns true if this is an all day event."""
         return self.start.time == datetime.time.min and self.end.time == datetime.time.max
+
+    def is_in_range(self, start_date: datetime.datetime, end_date: datetime.datetime) -> bool:
+        """
+        returns true if the event occurs in between the given start and end dates.
+        This includes events that only partially overlap the given range.
+        """
+        if self.is_recurring:
+            interval = self._event['vcalendar']['vevent']['rrule']['freq']
+
+            if interval == 'daily':
+                difference = end_date - start_date
+                if difference.days > 1:
+                    return True
+
+                """
+                Pak start - interval
+                voor interval < end
+                als in range
+                true
+                """
+
+                # The given range is less then a day
+                dt = start_date.date() + self.start.time()
+                dt_end = dt + self.duration
+                return dt > end_date and dt_end < start_date
+            else:
+                _LOGGER.warning('Interval not yet supported %s', interval)
+                return False
+        else:
+            return self.start > end_date and self.end < start_date
 
     def _get_time(self, name: str) -> Optional[Dict[str, str]]:
         """Read the time form the raw data."""
@@ -315,12 +358,69 @@ class EteSyncEvent:
         if hours == '' and minutes == '' and seconds == '':
             if is_start:
                 dt = datetime.datetime.combine(datetime.date(year=int(year), month=int(month), day=int(day)),
-                                                 datetime.time.min)
+                                               datetime.time.min)
             else:
                 dt = datetime.datetime.combine(datetime.date(year=int(year), month=int(month), day=int(day)),
-                                                 datetime.time.max)
+                                               datetime.time.max)
         else:
             dt = datetime.datetime(year=int(year), month=int(month), day=int(day),
                                    hour=int(hours), minute=int(minutes), second=int(seconds))
 
         return add_timezone(dt, timezone)
+
+    @staticmethod
+    def _parse_duration(duration_text: str) -> datetime.timedelta:
+        """
+        Parse an ISO 8601 duration into a timedelta
+        https://en.wikipedia.org/wiki/ISO_8601#Durations
+        example param: P3Y6M4DT12H30M5S
+                       PT3600S
+
+        :param duration_text: Duration as string in ISO 8601 format
+        :return: datetime.timedelta based on duration_text param
+        """
+        qualifiers = 'YWDHMS'
+
+        years, months, weeks, days, hours, minutes, seconds = 0, 0, 0, 0, 0, 0, 0
+
+        period = False
+        number = ''
+
+        for char in duration_text:
+            if char == 'P':
+                period = True
+                continue
+            if char == 'T':
+                period = False
+                continue
+
+            if char in qualifiers:
+                # handle number with current qualifier
+
+                if char == 'Y':  # years
+                    years = int(number)
+                elif char == 'W':  # weeks
+                    weeks = int(number)
+                elif char == 'D':  # days
+                    days = int(number)
+                elif char == 'H':  # hours
+                    hours = int(number)
+                elif char == 'S':  # seconds
+                    seconds = int(number)
+                elif char == 'M':  # months or minutes
+                    if period:  # months
+                        months = int(number)
+                    else:  # minutes
+                        minutes = int(number)
+
+                number = ''
+                continue
+
+            if char.isnumeric():
+                number += char
+                pass
+            else:
+                pass
+
+        total_days = years * 365 + weeks * 7
+        return datetime.timedelta(days=days, hours=hours, seconds=seconds)
