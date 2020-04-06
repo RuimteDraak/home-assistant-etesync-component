@@ -345,7 +345,7 @@ class EteSyncEvent:
             if interval == 'daily':
                 date = dt.date()
 
-                start = date + self.start.time()
+                start = datetime.datetime.combine(date, self.start.time())
                 duration = self.duration
 
                 end = start + duration
@@ -385,7 +385,7 @@ class EteSyncEvent:
                 """
 
                 # The given range is less then a day
-                dt = start_date.date() + self.start.time()
+                dt = datetime.datetime.combine(start_date.date(), self.start.time())
                 dt_end = dt + self.duration
                 return dt > end_date and dt_end < start_date
             else:
