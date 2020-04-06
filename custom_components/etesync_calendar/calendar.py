@@ -339,6 +339,24 @@ class EteSyncEvent:
         :param dt: The datetime relative to the event
         :return: The timedelta between the given dt and the event or a timedelta of 0 if the dt falls in the event.
         """
+        if self.is_recurring:
+            interval = self._event['vcalendar']['vevent']['rrule']['freq']
+
+            if interval == 'daily':
+                date = dt.date()
+
+                start = date + self.start.time()
+                duration = self.duration
+
+                end = start + duration
+
+                if start < dt:
+                    return start - dt
+                return end - dt
+            else:
+                _LOGGER.warning('Interval not yet supported %s', interval)
+                return datetime.timedelta.min
+
         if self.datetime_in_event(dt):
             return datetime.timedelta(0)
 
