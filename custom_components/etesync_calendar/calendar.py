@@ -210,11 +210,23 @@ class EteSyncCalendar:
     @property
     def next_event(self):
         """Returns the closest upcoming or current event."""
+        the_next_event = None
+        delta = datetime.timedelta.max
+
         now = datetime.datetime.now().astimezone()
         for event in self._events:
-            if event.end > now:
+            d = event.delta(now)
+
+            if d.seconds == 0:
+                # Event in progress
                 return event
-        return None
+            elif d.seconds > 0:
+                # Event in the future
+                if d < delta:
+                    the_next_event = event
+                    delta = d
+
+        return the_next_event
 
     @Throttle(datetime.timedelta(minutes=5))
     def update(self):
@@ -301,11 +313,38 @@ class EteSyncEvent:
         if duration_text is not None:
             return self._parse_duration(duration_text)
 
-
     @property
     def is_all_day(self) -> bool:
         """Returns true if this is an all day event."""
         return self.start.time == datetime.time.min and self.end.time == datetime.time.max
+
+    def datetime_in_event(self, dt: datetime.datetime) -> bool:
+        """
+        Check if a given datetime falls in the event.
+        :param dt: The datetime the event is compared against.
+        :return: True if the given dt falls in the event.
+        """
+        start = self.start
+        end = self.end
+
+        if start is None or end is None:
+            return False
+
+        if start <= dt < end:
+            return True
+        return False
+
+    def delta(self, dt: datetime.datetime) -> datetime.timedelta:
+        """
+        :param dt: The datetime relative to the event
+        :return: The timedelta between the given dt and the event or a timedelta of 0 if the dt falls in the event.
+        """
+        if self.datetime_in_event(dt):
+            return datetime.timedelta(0)
+
+        if self.start < dt:
+            return self.start - dt
+        return self.end - dt
 
     def is_in_range(self, start_date: datetime.datetime, end_date: datetime.datetime) -> bool:
         """
