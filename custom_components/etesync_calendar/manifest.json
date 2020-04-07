@@ -4,5 +4,5 @@
   "documentation": "",
   "dependencies": [],
   "codeowners": [],
-  "requirements": ["etesync==0.9.3", "pytz>=2019.03"]
+  "requirements": ["etesync==0.9.3", "pytz>=2019.03", "python-dateutil>=2.8.1"]
 }

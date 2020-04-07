@@ -3,6 +3,7 @@ import logging
 import datetime
 import pytz
 
+from dateutil.relativedelta import relativedelta
 from etesync import Authenticator, EteSync
 from typing import Optional, Dict, List
 
@@ -363,27 +364,45 @@ class EteSyncEvent:
         This includes events that only partially overlap the given range.
         """
         if self.is_recurring:
-            interval = self._event['vcalendar']['vevent']['rrule']['freq']
+            frequency = self._event['vcalendar']['vevent']['rrule']['freq']
 
-            if interval == 'daily':
+            if frequency == 'daily':
                 difference = end_date - start_date
                 if difference.days > 1:
                     return True
 
-                """
-                Pak start - interval
-                voor interval < end
-                als in range
-                true
-                """
+                interval = datetime.timedelta(days=1)
+            elif frequency == 'weekly':
+                difference = end_date - start_date
+                if difference.days > 7:
+                    return True
 
-                # The given range is less then a day
-                dt = datetime.datetime.combine(start_date.date(), self.start.time(), start_date.tzinfo)
-                dt_end = dt + self.duration
-                return dt > end_date and dt_end < start_date
+                interval = datetime.timedelta(days=7)
+            elif frequency == 'monthly':
+                difference = end_date - start_date
+                if difference.days > 31:
+                    return True
+
+                interval = relativedelta(months=1)
+            elif frequency == 'yearly':
+                difference = end_date - start_date
+                if difference.days > 365:
+                    return True
+
+                interval = relativedelta(years=1)
             else:
-                _LOGGER.warning('Interval not yet supported %s', interval)
+                _LOGGER.warning('Interval not yet supported: %s', frequency)
                 return False
+
+            start = self.start
+            duration = self.duration
+
+            while start < end_date:
+                end = start + duration
+                if start > end_date and end < start_date:
+                    return True
+                start = start + interval
+            return False
         else:
             return self.start > end_date and self.end < start_date
 
