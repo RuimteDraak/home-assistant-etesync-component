@@ -157,18 +157,11 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
         if event is None:
             return STATE_OFF
 
-        start = event.start
-        end = event.end
-
-        if start is None or end is None:
-            return STATE_OFF
-
         now = datetime.datetime.now().astimezone()
 
-        if start <= now < end:
-            return STATE_ON
-
-        return STATE_OFF
+        if event.datetime_in_event(now):
+            return True
+        return False
 
     async def async_get_events(self, hass, start_date, end_date):
         return self._calendar.get_events_in_range(start_date, end_date)
