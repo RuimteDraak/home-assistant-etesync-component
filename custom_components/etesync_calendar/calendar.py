@@ -460,6 +460,7 @@ class EteSyncEvent:
                 elif char == 'M':  # months or minutes
                     if period:  # months
                         months = int(number)
+                        _LOGGER.warning("months in duration %s not supported, ignored", duration_text)
                     else:  # minutes
                         minutes = int(number)
 
@@ -472,5 +473,6 @@ class EteSyncEvent:
             else:
                 pass
 
-        total_days = years * 365 + weeks * 7
-        return datetime.timedelta(days=days, hours=hours, seconds=seconds)
+        total_days = years * 365 + weeks * 7 + days
+        total_seconds = hours * 60 * 60 + minutes * 60 + seconds
+        return datetime.timedelta(days=total_days, seconds=total_seconds)
