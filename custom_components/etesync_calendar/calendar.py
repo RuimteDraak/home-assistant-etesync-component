@@ -360,7 +360,7 @@ class EteSyncEvent:
                 start = start + interval
                 end = start + duration
 
-                if end > dt:
+                if start < dt < end:
                     return datetime.timedelta(0)
 
                 delta_start = start - dt
