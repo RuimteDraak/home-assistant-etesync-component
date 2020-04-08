@@ -350,9 +350,13 @@ class EteSyncEvent:
 
             best_delta = datetime.timedelta.min
             start = self.start
+            event_end = self.end
             duration = self.duration
 
             while start < dt:
+                # TODO we are currently missing the first event, but this ensures that at least one event after
+                # the dt is processed
+                start = start + interval
                 end = start + duration
 
                 if end > dt:
@@ -364,7 +368,10 @@ class EteSyncEvent:
                 delta = self.best_delta(delta_start, delta_end)
                 best_delta = self.best_delta(best_delta, delta)
 
-                start = start + interval
+                if start > event_end:
+                    break
+
+            return best_delta
 
         if self.datetime_in_event(dt):
             return datetime.timedelta(0)
@@ -384,7 +391,7 @@ class EteSyncEvent:
         left_sec = left.seconds
         right_sec = right.seconds
 
-        #if both are negative
+        # if both are negative
         if left_sec < 0 and right_sec < 0:
             if left_sec > right_sec:
                 return left
@@ -398,7 +405,7 @@ class EteSyncEvent:
             else:
                 return left
 
-        #return the only positive
+        # return the only positive
         if left_sec > 0:
             return left
         return right
