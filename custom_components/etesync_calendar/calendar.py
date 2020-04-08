@@ -354,20 +354,21 @@ class EteSyncEvent:
             event_end = self.end
             duration = self.duration
 
+            first = True
             while start < dt:
-                # TODO we are currently missing the first event, but this ensures that at least one event after
-                # the dt is processed
-                start = start + interval
-                end = start + duration
+                if first:
+                    first = False
+                else:
+                    start = start + interval
 
-                if start < dt < end:
-                    return datetime.timedelta(0)
+                if start < dt:
+                    delta = start - dt
+                else:
+                    end = start + duration
+                    delta = end - dt
 
-                delta_start = start - dt
-                delta_end = end - dt
-
-                delta = self.best_delta(delta_start, delta_end)
-                best_delta = self.best_delta(best_delta, delta)
+                if delta < best_delta:
+                    best_delta = delta
 
                 if start > event_end:
                     break
@@ -380,36 +381,6 @@ class EteSyncEvent:
         if self.start < dt:
             return self.start - dt
         return self.end - dt
-
-    @staticmethod
-    def best_delta(left: datetime.timedelta, right: datetime.timedelta) -> datetime.timedelta:
-        """
-        The best delta is the delta closest to 0
-        :param left: a timedelta
-        :param right: a timedelta
-        :return: the timedelta closest to 0
-        """
-        left_sec = left.seconds
-        right_sec = right.seconds
-
-        # if both are negative
-        if left_sec < 0 and right_sec < 0:
-            if left_sec > right_sec:
-                return left
-            else:
-                return right
-
-        # if both are positive
-        if left_sec > 0 and right_sec > 0:
-            if left_sec > right_sec:
-                return right
-            else:
-                return left
-
-        # return the only positive
-        if left_sec > 0:
-            return left
-        return right
 
     def is_in_range(self, start_date: datetime.datetime, end_date: datetime.datetime) -> bool:
         """
