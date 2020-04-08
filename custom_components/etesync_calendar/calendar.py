@@ -209,17 +209,17 @@ class EteSyncCalendar:
 
         now = datetime.datetime.now().astimezone()
         for event in self._events:
-            d = event.delta(now)
+            event_delta, is_in_future = event.delta(now)
 
-            if d.seconds == 0:
+            if event_delta.seconds == 0:
                 # Event in progress
                 _LOGGER.warning("Event currently going on: %s", event.summary)
                 return event
-            elif d.seconds > 0:
+            elif is_in_future:
                 # Event in the future
-                if d < delta:
+                if event_delta < delta:
                     the_next_event = event
-                    delta = d
+                    delta = event_delta
 
         return the_next_event
 
@@ -329,7 +329,7 @@ class EteSyncEvent:
             return True
         return False
 
-    def delta(self, dt: datetime.datetime) -> datetime.timedelta:
+    def delta(self, dt: datetime.datetime) -> (datetime.timedelta, bool):
         """
         :param dt: The datetime relative to the event
         :return: The timedelta between the given dt and the event or a timedelta of 0 if the dt falls in the event.
@@ -379,14 +379,14 @@ class EteSyncEvent:
                 if start > event_end:
                     break
 
-            return best_delta
+            return best_delta, best_delta_in_future
 
         if self.datetime_in_event(dt):
-            return datetime.timedelta(0)
+            return datetime.timedelta(0), True
 
         if self.start < dt:
-            return self.start - dt
-        return self.end - dt
+            return self.start - dt, False
+        return self.end - dt, True
 
     def is_in_range(self, start_date: datetime.datetime, end_date: datetime.datetime) -> bool:
         """
