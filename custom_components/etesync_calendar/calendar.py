@@ -369,7 +369,7 @@ class EteSyncEvent:
                 else:
                     end = start + duration
                     delta = end - dt
-                    after_dt = end > dt
+                    after_dt = False
 
                 if delta < best_delta:
                     if not best_delta_after_dt or (best_delta_after_dt and after_dt):
