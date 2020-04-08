@@ -350,7 +350,7 @@ class EteSyncEvent:
                 return datetime.timedelta.min
 
             best_delta = datetime.timedelta.min
-            best_delta_in_future = False
+            best_delta_after_dt = False
 
             start = self.start
             event_end = self.end
@@ -363,30 +363,31 @@ class EteSyncEvent:
                 else:
                     start = start + interval
 
-                if start < dt:
+                if start > dt:
                     delta = start - dt
-                    in_future = False
+                    after_dt = True
                 else:
                     end = start + duration
                     delta = end - dt
-                    in_future = True
+                    after_dt = end > dt
 
                 if delta < best_delta:
-                    if not best_delta_in_future or (best_delta_in_future and in_future):
+                    if not best_delta_after_dt or (best_delta_after_dt and after_dt):
                         best_delta = delta
-                        best_delta_in_future = in_future
+                        best_delta_after_dt = after_dt
 
                 if start > event_end:
                     break
 
-            return best_delta, best_delta_in_future
+            return best_delta, best_delta_after_dt
 
         if self.datetime_in_event(dt):
             return datetime.timedelta(0), True
 
         if self.start < dt:
-            return self.start - dt, False
-        return self.end - dt, True
+            return self.start - dt, True
+        end = self.end
+        return end - dt, end > dt
 
     def is_in_range(self, start_date: datetime.datetime, end_date: datetime.datetime) -> bool:
         """
