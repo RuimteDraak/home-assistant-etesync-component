@@ -334,22 +334,37 @@ class EteSyncEvent:
         :return: The timedelta between the given dt and the event or a timedelta of 0 if the dt falls in the event.
         """
         if self.is_recurring:
-            interval = self._event['vcalendar']['vevent']['rrule']['freq']
+            frequency = self._event['vcalendar']['vevent']['rrule']['freq']
 
-            if interval == 'daily':
-                date = dt.date()
+            if frequency == 'daily':
+                interval = datetime.timedelta(days=1)
+            elif frequency == 'weekly':
+                interval = datetime.timedelta(weeks=1)
+            elif frequency == 'monthly':
+                interval = relativedelta(months=1)
+            elif frequency == 'yearly':
+                interval = relativedelta(years=1)
+            else:
+                _LOGGER.warning('Interval not yet supported %s', frequency)
+                return datetime.timedelta.min
 
-                start = datetime.datetime.combine(date, self.start.time(), dt.tzinfo)
-                duration = self.duration
+            best_delta = datetime.timedelta.min
+            start = self.start
+            duration = self.duration
 
+            while start < dt:
                 end = start + duration
 
-                if start < dt:
-                    return start - dt
-                return end - dt
-            else:
-                _LOGGER.warning('Interval not yet supported %s', interval)
-                return datetime.timedelta.min
+                if end > dt:
+                    return datetime.timedelta(0)
+
+                delta_start = start - dt
+                delta_end = end - dt
+
+                delta = self.best_delta(delta_start, delta_end)
+                best_delta = self.best_delta(best_delta, delta)
+
+                start = start + interval
 
         if self.datetime_in_event(dt):
             return datetime.timedelta(0)
@@ -357,6 +372,36 @@ class EteSyncEvent:
         if self.start < dt:
             return self.start - dt
         return self.end - dt
+
+    @staticmethod
+    def best_delta(left: datetime.timedelta, right: datetime.timedelta) -> datetime.timedelta:
+        """
+        The best delta is the delta closest to 0
+        :param left: a timedelta
+        :param right: a timedelta
+        :return: the timedelta closest to 0
+        """
+        left_sec = left.seconds
+        right_sec = right.seconds
+
+        #if both are negative
+        if left_sec < 0 and right_sec < 0:
+            if left_sec > right_sec:
+                return left
+            else:
+                return right
+
+        # if both are positive
+        if left_sec > 0 and right_sec > 0:
+            if left_sec > right_sec:
+                return right
+            else:
+                return left
+
+        #return the only positive
+        if left_sec > 0:
+            return left
+        return right
 
     def is_in_range(self, start_date: datetime.datetime, end_date: datetime.datetime) -> bool:
         """
