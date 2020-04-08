@@ -213,6 +213,7 @@ class EteSyncCalendar:
 
             if d.seconds == 0:
                 # Event in progress
+                _LOGGER.warning("Event currently going on: %s", event.summary)
                 return event
             elif d.seconds > 0:
                 # Event in the future
