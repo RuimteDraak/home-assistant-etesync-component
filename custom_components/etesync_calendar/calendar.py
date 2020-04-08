@@ -350,6 +350,8 @@ class EteSyncEvent:
                 return datetime.timedelta.min
 
             best_delta = datetime.timedelta.min
+            best_delta_in_future = False
+
             start = self.start
             event_end = self.end
             duration = self.duration
@@ -363,12 +365,16 @@ class EteSyncEvent:
 
                 if start < dt:
                     delta = start - dt
+                    in_future = False
                 else:
                     end = start + duration
                     delta = end - dt
+                    in_future = True
 
                 if delta < best_delta:
-                    best_delta = delta
+                    if not best_delta_in_future or (best_delta_in_future and in_future):
+                        best_delta = delta
+                        best_delta_in_future = in_future
 
                 if start > event_end:
                     break
