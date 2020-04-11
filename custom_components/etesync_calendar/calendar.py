@@ -5,7 +5,7 @@ import pytz
 
 from dateutil.relativedelta import relativedelta
 from etesync import Authenticator, EteSync
-from typing import Optional, Dict, List
+from typing import Optional, Dict, List, Tuple
 
 from homeassistant.components.calendar import (
     ENTITY_ID_FORMAT,
@@ -218,6 +218,7 @@ class EteSyncCalendar:
             if is_in_future:
                 # Event in the future
                 if event_delta < delta:
+                    _LOGGER.warning("[EteSync] next event: %s with delta %s", event.summary, event_delta.total_seconds())
                     the_next_event = event
                     delta = event_delta
 
@@ -329,7 +330,7 @@ class EteSyncEvent:
             return True
         return False
 
-    def delta(self, dt: datetime.datetime) -> (datetime.timedelta, bool):
+    def delta(self, dt: datetime.datetime) -> Tuple[datetime.timedelta, bool]:
         """
         :param dt: The datetime relative to the event
         :return: The timedelta between the given dt and the event or a timedelta of 0 if the dt falls in the event.
