@@ -385,7 +385,7 @@ class EteSyncEvent:
         if self.datetime_in_event(dt):
             return datetime.timedelta(0), True
 
-        if self.start < dt:
+        if self.start > dt:
             return self.start - dt, True
         end = self.end
         return end - dt, end > dt
