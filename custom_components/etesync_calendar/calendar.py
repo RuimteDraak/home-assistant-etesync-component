@@ -209,14 +209,9 @@ class EteSyncCalendar:
 
         now = datetime.datetime.now().astimezone()
         for event in self._events:
-            event_delta, is_in_future = event.delta(now)
+            event_delta, event_is_in_future = event.delta(now)
 
-            # if event.:
-            #     # Event in progress
-            #     _LOGGER.warning("Event currently going on: %s", event.summary)
-            #     return event
-            if is_in_future:
-                # Event in the future
+            if event_is_in_future:
                 if event_delta < delta:
                     _LOGGER.warning("[EteSync] next event: %s with delta %s", event.summary, event_delta.total_seconds())
                     the_next_event = event
