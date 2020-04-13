@@ -193,12 +193,12 @@ class EteSyncCalendar:
         events = []
         for event_description in self._event_descriptions:
 
-            for event in event_description.events():
+            for index, event in enumerate(event_description.events()):
 
                 if event.is_in_range(start_date, end_date):
                     events.append(event_description)
 
-                if event.start > end_date:
+                if event.start > end_date or index > 1000:
                     break
         return events
 
@@ -215,7 +215,7 @@ class EteSyncCalendar:
 
         now = datetime.datetime.now().astimezone()
         for event_description in self._event_descriptions:
-            for event in event_description.events():
+            for index, event in enumerate(event_description.events()):
                 event_delta, event_is_in_future = event.delta(now)
 
                 if event_is_in_future:
@@ -224,7 +224,7 @@ class EteSyncCalendar:
                         the_next_event = event
                         delta = event_delta
 
-                if event.start > now:
+                if event.start > now or index > 1000:
                     break
 
         return the_next_event
