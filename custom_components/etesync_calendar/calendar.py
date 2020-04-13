@@ -261,6 +261,8 @@ class EteSyncEventDescription:
             interval = self._interval()
             duration = self._duration()
 
+            _LOGGER.warning("[EteSync] iterating recurring event: [%s] from %s to %s with interval %s and duration %s", self._summary(), start, end, interval, duration)
+
             while start < end:
                 yield EteSyncEvent(self._id(), self._summary(), self._description(), start, duration)
                 start = start + interval
