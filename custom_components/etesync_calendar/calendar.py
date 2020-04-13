@@ -253,7 +253,7 @@ class EteSyncEventDescription:
         """Update event description with new data if anything has changed"""
         pass
 
-    def events(self) -> Generator["EteSyncEvent"]:
+    def events(self) -> Generator["EteSyncEvent", None, None]:
         """Generator for the one or more events this description describes."""
         if self._is_recurring():
             start = self._start()
