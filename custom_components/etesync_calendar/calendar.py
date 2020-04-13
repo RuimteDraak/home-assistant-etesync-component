@@ -218,7 +218,6 @@ class EteSyncCalendar:
 
                 if event_is_in_future:
                     if event_delta < delta:
-                        _LOGGER.warning("[EteSync] next event: %s with delta %s", event.summary, event_delta.total_seconds())
                         the_next_event = event
                         delta = event_delta
 
@@ -260,8 +259,6 @@ class EteSyncEventDescription:
             end = self._end()
             interval = self._interval()
             duration = self._duration()
-
-            _LOGGER.warning("[EteSync] iterating recurring event: [%s] from %s to %s with interval %s and duration %s", self._summary(), start, end, interval, duration)
 
             while start < end:
                 yield EteSyncEvent(self._id(), self._summary(), self._description(), start, duration)
