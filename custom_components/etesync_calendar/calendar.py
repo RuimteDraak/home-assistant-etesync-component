@@ -185,14 +185,12 @@ class EteSyncCalendar:
         events = self._raw_data.collection.list()
         for event in events:
             self._event_descriptions.append(EteSyncEventDescription(event))
-        self._event_descriptions.sort(key=lambda e: e.start)
+        # self._event_descriptions.sort(key=lambda e: e.start)
 
     def get_events_in_range(self, start_date: datetime.datetime, end_date: datetime.datetime):
         """Return calendar events within a datetime range."""
-
         events = []
         for event_description in self._event_descriptions:
-
             for index, event in enumerate(event_description.events()):
 
                 if event.is_in_range(start_date, end_date):
