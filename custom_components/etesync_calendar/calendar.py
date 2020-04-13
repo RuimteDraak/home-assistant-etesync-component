@@ -310,13 +310,13 @@ class EteSyncEventDescription:
             if start is not None and start.time == datetime.time.min:
                 return datetime.datetime.combine(start.date(), datetime.time.max, start.tzinfo)
             else:
-                return add_timezone(datetime.datetime.min, 'utc')
+                return add_timezone(datetime.datetime.max, 'utc')
 
         timezone = timeobj.get('timezone')
         time = self._parse_date_time(timeobj['time'], timezone, False)
 
         if time is None:
-            return add_timezone(datetime.datetime.min, 'utc')
+            return add_timezone(datetime.datetime.max, 'utc')
         return time
 
     def _interval(self) -> relativedelta:
