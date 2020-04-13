@@ -296,7 +296,7 @@ class EteSyncEventDescription:
         time = self._parse_date_time(timeobj['time'], timezone, True)
 
         if time is None:
-            return add_timezone(datetime.datetime.max, 'utc')
+            return add_timezone(datetime.datetime.min, 'utc')
         return time
 
     def _end(self) -> datetime.datetime:
