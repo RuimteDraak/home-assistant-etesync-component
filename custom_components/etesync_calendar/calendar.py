@@ -283,8 +283,8 @@ class EteSyncEventDescription:
         duration = self._duration()
         if end is None:
             # 60 * 60 * 24 = 86400 seconds a day
-            return duration.total_seconds() == 86400
-        return start.time == time.min and end.time == time.max
+            return duration.total_seconds() > 86399
+        return (start - end).total_seconds() > 86399
 
     def _is_recurring(self) -> bool:
         return self._event['vcalendar']['vevent'].get('rrule') is not None
