@@ -254,6 +254,9 @@ class EteSyncEventDescription:
 
     def events(self) -> Generator["EteSyncEvent", None, None]:
         """Generator for the one or more events this description describes."""
+
+        id, summary, description, is_all_day = self._get_generic_event_properties()
+
         if self._is_recurring():
             start = self._start()
             end = self._end()
@@ -261,22 +264,27 @@ class EteSyncEventDescription:
             duration = self._duration()
 
             while start < end:
-                yield EteSyncEvent(self._id(), self._summary(), self._description(), start, duration)
+                yield EteSyncEvent(id, summary, description, start, duration, is_all_day)
                 start = start + interval
         else:
-            yield EteSyncEvent(self._id(), self._summary(), self._description(), self._start(), self._end() - self._start())
+            yield EteSyncEvent(id, summary, description, self._start(), self._end() - self._start(), is_all_day)
 
-    def _id(self) -> str:
-        """Returns the Event id."""
-        return self._event['vcalendar']['vevent']['uid']
+    def _get_generic_event_properties(self):
+        id = self._event['vcalendar']['vevent']['uid']
+        summary = self._event['vcalendar']['vevent'].get('summary', '')
+        description = self._event['vcalendar']['vevent'].get('description', '')
+        is_all_day = self._is_all_day()
 
-    def _summary(self) -> str:
-        """Returns the event summary."""
-        return self._event['vcalendar']['vevent'].get('summary', '')
+        return id, summary, description, is_all_day
 
-    def _description(self) -> str:
-        """Returns the event description."""
-        return self._event['vcalendar']['vevent'].get('description', '')
+    def _is_all_day(self):
+        start = self._start()
+        end = self._end()
+        duration = self._duration()
+        if end is None:
+            # 60 * 60 * 24 = 86400 seconds a day
+            return duration.total_seconds() == 86400
+        return start.time == datetime.time.min and end.time == datetime.time.max
 
     def _is_recurring(self) -> bool:
         return self._event['vcalendar']['vevent'].get('rrule') is not None
@@ -290,7 +298,7 @@ class EteSyncEventDescription:
         timeobj = self._get_time('dtstart')
 
         timezone = timeobj.get('timezone')
-        time = self._parse_date_time(timeobj['time'], timezone, True)
+        time = self._parse_date_time(timeobj['time'], timezone)
 
         if time is None:
             return add_timezone(datetime.datetime.min, 'utc')
@@ -310,7 +318,7 @@ class EteSyncEventDescription:
                 return add_timezone(datetime.datetime.max, 'utc')
 
         timezone = timeobj.get('timezone')
-        time = self._parse_date_time(timeobj['time'], timezone, False)
+        time = self._parse_date_time(timeobj['time'], timezone)
 
         if time is None:
             return add_timezone(datetime.datetime.max, 'utc')
@@ -336,7 +344,7 @@ class EteSyncEventDescription:
         return self._event['vcalendar']['vevent'].get(name)
 
     @staticmethod
-    def _parse_date_time(raw_datetime: str, timezone: str, is_start=True) -> Optional[datetime.datetime]:
+    def _parse_date_time(raw_datetime: str, timezone: str) -> Optional[datetime.datetime]:
         """Parse datetime in format 'YYYYMMDDTHHmmss'"""
         if not raw_datetime:
             return None
@@ -349,13 +357,9 @@ class EteSyncEventDescription:
         minutes = raw_datetime[11:13]
         seconds = raw_datetime[13:15]
 
-        if hours == '' and minutes == '' and seconds == '':
-            if is_start:
-                dt = datetime.datetime.combine(datetime.date(year=int(year), month=int(month), day=int(day)),
-                                               datetime.time.min)
-            else:
-                dt = datetime.datetime.combine(datetime.date(year=int(year), month=int(month), day=int(day)),
-                                               datetime.time.max)
+        if hours == '' or minutes == '' or seconds == '':
+            dt = datetime.datetime.combine(datetime.date(year=int(year), month=int(month), day=int(day)),
+                                           datetime.time.min)
         else:
             dt = datetime.datetime(year=int(year), month=int(month), day=int(day),
                                    hour=int(hours), minute=int(minutes), second=int(seconds))
@@ -370,13 +374,15 @@ class EteSyncEvent:
                  summary: str,
                  description: str,
                  start: datetime.datetime,
-                 duration: datetime.timedelta) -> None:
+                 duration: datetime.timedelta,
+                 is_all_day=False) -> None:
         """Initialize the EteSyncEvent class."""
         self._id = event_id
         self._summary = summary
         self._description = description
         self._start = start
         self._duration = duration
+        self._is_all_day = is_all_day
 
     @property
     def id(self) -> str:
@@ -407,7 +413,7 @@ class EteSyncEvent:
 
     @property
     def is_all_day(self) -> bool:
-        return False
+        return self._is_all_day
 
     @property
     def duration(self) -> datetime.timedelta:
