@@ -1,8 +1,8 @@
 import voluptuous as vol
 import logging
-import datetime
 import pytz
 
+from datetime import timedelta, time, date, datetime
 from dateutil.relativedelta import relativedelta
 from etesync import Authenticator, EteSync
 from typing import Optional, Dict, List, Tuple, Generator
@@ -108,7 +108,7 @@ def _credentials_not_changed(old, new) -> bool:
     return True
 
 
-def add_timezone(dt: datetime.datetime, tz: Optional[str]) -> datetime.datetime:
+def add_timezone(dt: datetime, tz: Optional[str]) -> datetime:
     """Add the given tz timezone to the datetime and return the result"""
 
     if tz is None or tz.lower() == 'date':
@@ -158,7 +158,7 @@ class EteSyncCalendarEventDevice(CalendarEventDevice):
         if event is None:
             return STATE_OFF
 
-        now = datetime.datetime.now().astimezone()
+        now = datetime.now().astimezone()
 
         if event.datetime_in_event(now):
             return STATE_ON
@@ -187,7 +187,7 @@ class EteSyncCalendar:
             self._event_descriptions.append(EteSyncEventDescription(event))
         # self._event_descriptions.sort(key=lambda e: e.start)
 
-    def get_events_in_range(self, start_date: datetime.datetime, end_date: datetime.datetime):
+    def get_events_in_range(self, start_date: datetime, end_date: datetime):
         """Return calendar events within a datetime range."""
         events = []
         for event_description in self._event_descriptions:
@@ -209,9 +209,9 @@ class EteSyncCalendar:
     def next_event(self):
         """Returns the closest upcoming or current event."""
         the_next_event = None
-        delta = datetime.timedelta.max
+        delta = timedelta.max
 
-        now = datetime.datetime.now().astimezone()
+        now = datetime.now().astimezone()
         for event_description in self._event_descriptions:
             for event in event_description.events():
                 event_delta, event_is_in_future = event.delta(now)
@@ -226,7 +226,7 @@ class EteSyncCalendar:
 
         return the_next_event
 
-    @Throttle(datetime.timedelta(minutes=5))
+    @Throttle(timedelta(minutes=5))
     def update(self):
         """Update the calendar data"""
         self._ete_sync.sync()
@@ -284,27 +284,27 @@ class EteSyncEventDescription:
         if end is None:
             # 60 * 60 * 24 = 86400 seconds a day
             return duration.total_seconds() == 86400
-        return start.time == datetime.time.min and end.time == datetime.time.max
+        return start.time == time.min and end.time == time.max
 
     def _is_recurring(self) -> bool:
         return self._event['vcalendar']['vevent'].get('rrule') is not None
 
-    def _duration(self) -> Optional[datetime.timedelta]:
+    def _duration(self) -> Optional[timedelta]:
         duration_text = self._event['vcalendar']['vevent'].get('duration')
         return parse_iso8601_duration(duration_text)
 
-    def _start(self) -> datetime.datetime:
+    def _start(self) -> datetime:
         """Returns the start datetime of the Event or datetime.max if none."""
         timeobj = self._get_time('dtstart')
 
         timezone = timeobj.get('timezone')
-        time = self._parse_date_time(timeobj['time'], timezone)
+        parsed_time = self._parse_date_time(timeobj['time'], timezone)
 
-        if time is None:
-            return add_timezone(datetime.datetime.min, 'utc')
-        return time
+        if parsed_time is None:
+            return add_timezone(datetime.min, 'utc')
+        return parsed_time
 
-    def _end(self) -> datetime.datetime:
+    def _end(self) -> datetime:
         """Returns the end datetime of the Event or datetime.min if none.
             If it is an all day event, will return datetime.date + time.max.
         """
@@ -312,17 +312,17 @@ class EteSyncEventDescription:
         timeobj = self._get_time('dtend')
         if timeobj is None:
             start = self._start()
-            if start is not None and start.time == datetime.time.min:
-                return datetime.datetime.combine(start.date(), datetime.time.max, start.tzinfo)
+            if start is not None and start.time == time.min:
+                return datetime.combine(start.date(), time.max, start.tzinfo)
             else:
-                return add_timezone(datetime.datetime.max, 'utc')
+                return add_timezone(datetime.max, 'utc')
 
         timezone = timeobj.get('timezone')
-        time = self._parse_date_time(timeobj['time'], timezone)
+        parsed_time = self._parse_date_time(timeobj['time'], timezone)
 
-        if time is None:
-            return add_timezone(datetime.datetime.max, 'utc')
-        return time
+        if parsed_time is None:
+            return add_timezone(datetime.max, 'utc')
+        return parsed_time
 
     def _interval(self) -> relativedelta:
         frequency = self._event['vcalendar']['vevent']['rrule']['freq']
@@ -344,7 +344,7 @@ class EteSyncEventDescription:
         return self._event['vcalendar']['vevent'].get(name)
 
     @staticmethod
-    def _parse_date_time(raw_datetime: str, timezone: str) -> Optional[datetime.datetime]:
+    def _parse_date_time(raw_datetime: str, timezone: str) -> Optional[datetime]:
         """Parse datetime in format 'YYYYMMDDTHHmmss'"""
         if not raw_datetime:
             return None
@@ -358,10 +358,10 @@ class EteSyncEventDescription:
         seconds = raw_datetime[13:15]
 
         if hours == '' or minutes == '' or seconds == '':
-            dt = datetime.datetime.combine(datetime.date(year=int(year), month=int(month), day=int(day)),
-                                           datetime.time.min)
+            dt = datetime.combine(date(year=int(year), month=int(month), day=int(day)),
+                                           time.min)
         else:
-            dt = datetime.datetime(year=int(year), month=int(month), day=int(day),
+            dt = datetime(year=int(year), month=int(month), day=int(day),
                                    hour=int(hours), minute=int(minutes), second=int(seconds))
 
         return add_timezone(dt, timezone)
@@ -373,8 +373,8 @@ class EteSyncEvent:
     def __init__(self, event_id: str,
                  summary: str,
                  description: str,
-                 start: datetime.datetime,
-                 duration: datetime.timedelta,
+                 start: datetime,
+                 duration: timedelta,
                  is_all_day=False) -> None:
         """Initialize the EteSyncEvent class."""
         self._id = event_id
@@ -400,12 +400,12 @@ class EteSyncEvent:
         return self._description
 
     @property
-    def start(self) -> datetime.datetime:
+    def start(self) -> datetime:
         """Returns the start datetime of the Event or datetime.max if none."""
         return self._start
 
     @property
-    def end(self) -> datetime.datetime:
+    def end(self) -> datetime:
         """Returns the end datetime of the Event or datetime.min if none.
             If it is an all day event, will return datetime.date + time.max.
         """
@@ -416,13 +416,13 @@ class EteSyncEvent:
         return self._is_all_day
 
     @property
-    def duration(self) -> datetime.timedelta:
+    def duration(self) -> timedelta:
         """
         :return: The duration as timedelta
         """
         return self._duration
 
-    def datetime_in_event(self, dt: datetime.datetime) -> bool:
+    def datetime_in_event(self, dt: datetime) -> bool:
         """
         Check if a given datetime falls in the event.
         :param dt: The datetime the event is compared against.
@@ -438,20 +438,20 @@ class EteSyncEvent:
             return True
         return False
 
-    def delta(self, dt: datetime.datetime) -> Tuple[datetime.timedelta, bool]:
+    def delta(self, dt: datetime) -> Tuple[timedelta, bool]:
         """
         :param dt: The datetime relative to the event
         :return: The timedelta between the given dt and the event or a timedelta of 0 if the dt falls in the event.
         """
         if self.datetime_in_event(dt):
-            return datetime.timedelta(0), True
+            return timedelta(0), True
 
         if self.start > dt:
             return self.start - dt, True
         end = self.end
         return end - dt, end > dt
 
-    def is_in_range(self, start_date: datetime.datetime, end_date: datetime.datetime) -> bool:
+    def is_in_range(self, start_date: datetime, end_date: datetime) -> bool:
         """
         returns true if the event occurs in between the given start and end dates.
         This includes events that only partially overlap the given range.

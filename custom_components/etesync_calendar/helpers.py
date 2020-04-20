@@ -1,7 +1,7 @@
 import os
 import logging
-import datetime
 
+from datetime import timedelta
 from typing import List, Tuple, Optional
 
 _LOGGER = logging.getLogger(__name__)
@@ -62,6 +62,9 @@ def _parse_keyed_timezone(key: str, value: str):
     if ';' not in key or '=' not in key:
         return key, value
 
+    # DTSTART;TZID=Europe/Amsterdam:20200612T170000
+    # DTSTART;VALUE=DATE:20200420
+
     splitted = key.split(';', 1)
     timezone = splitted[-1].split('=')[-1]
     return (splitted[0], {
@@ -102,7 +105,7 @@ def write_to_cache(folder: str, url: str, username: str, password: str, cipher_k
         _LOGGER.warning("Could not write cache file")
 
 
-def parse_iso8601_duration(duration_text: str) -> Optional[datetime.timedelta]:
+def parse_iso8601_duration(duration_text: str) -> Optional[timedelta]:
     """
             Parse an ISO 8601 duration into a timedelta
             https://en.wikipedia.org/wiki/ISO_8601#Durations
@@ -161,4 +164,4 @@ def parse_iso8601_duration(duration_text: str) -> Optional[datetime.timedelta]:
 
     total_days = years * 365 + weeks * 7 + days
     total_seconds = hours * 60 * 60 + minutes * 60 + seconds
-    return datetime.timedelta(days=total_days, seconds=total_seconds)
+    return timedelta(days=total_days, seconds=total_seconds)
