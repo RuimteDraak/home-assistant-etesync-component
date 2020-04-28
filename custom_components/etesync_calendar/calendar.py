@@ -29,6 +29,8 @@ from .helpers import parse, parse_iso8601_duration, read_from_cache, write_to_ca
 
 DOMAIN = 'etesync_calendar'
 
+PARALLEL_UPDATES = 1
+
 CONF_ENCRYPTION_PASSWORD = 'encryption_password'
 CONF_DEFAULT_TIMEZONE = 'default_timezone'
 CACHE_FOLDER = 'custom_components/etesync_calendar/cache'
