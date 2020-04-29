@@ -95,10 +95,12 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         if journal.info['type'] == CALENDAR_ITEM_TYPE:
             name = f"{username}-{journal.info['displayName']}"
             entity_id = generate_entity_id(ENTITY_ID_FORMAT, name, hass=hass)
+            _LOGGER.info("Creating entity %s", entity_id)
             device = EteSyncCalendarEventDevice(hass, journal, ete_sync, entity_id)
             devices.append(device)
-
+    _LOGGER.info("Call async_add_entities")
     async_add_entities(devices, True)
+    _LOGGER.info("Done async_setup_platform")
 
 
 def _credentials_not_changed(old, new) -> bool:
