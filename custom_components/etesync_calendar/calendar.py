@@ -86,8 +86,8 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     ete_sync.sync()
     _LOGGER.info("Syncing done")
 
-    journals = ete_sync.list()
-
+    journals = list(ete_sync.list())
+    _LOGGER.info("Journals found: %s", str(len(journals)))
     devices = []
 
     for journal in journals:
