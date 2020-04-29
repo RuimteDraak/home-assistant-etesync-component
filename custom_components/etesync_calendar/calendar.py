@@ -53,7 +53,7 @@ _LOGGER = logging.getLogger(__name__)
 DEFAULT_TIMEZONE = ''
 
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+def setup_platform(hass, config, add_entities, discovery_info=None):
     url = config[CONF_URL]
     username = config[CONF_USERNAME]
     password = config[CONF_PASSWORD]
@@ -95,12 +95,9 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
         if journal.info['type'] == CALENDAR_ITEM_TYPE:
             name = f"{username}-{journal.info['displayName']}"
             entity_id = generate_entity_id(ENTITY_ID_FORMAT, name, hass=hass)
-            _LOGGER.info("Creating entity %s", entity_id)
             device = EteSyncCalendarEventDevice(hass, journal, ete_sync, entity_id)
             devices.append(device)
-    _LOGGER.info("Call async_add_entities")
-    async_add_entities(devices, True)
-    _LOGGER.info("Done async_setup_platform")
+    add_entities(devices, True)
 
 
 def _credentials_not_changed(old, new) -> bool:
